@@ -25,7 +25,7 @@
         <form action="test.php" method="GET">
             <div class="form-group">
                 <label for="taxIdCode">Tax ID Code</label>
-                <input type="number" class="form-control" id="taxIdCode" name="n" placeholder="Enter family index" required>
+                <input type="number" class="form-control" id="taxIdCode" name="tic" placeholder="Enter tax id code" required>
             </div>
             <button type="submit" class="btn btn-primary">Submit</button> 
         </form>
@@ -34,8 +34,8 @@
 
         <form action="test.php" method="GET">
             <div class="form-group">
-                <label for="familyIndex">Family Index</label>
-                <input type="number" class="form-control" id="familyIndex" name="n" placeholder="Enter family index" required>
+                <label for="familyId">Family ID</label>
+                <input type="number" class="form-control" id="familyId" name="fam-id" placeholder="Enter family id" required>
             </div>
             <button type="submit" class="btn btn-primary">Submit</button> 
         </form>
@@ -44,7 +44,7 @@
 
         <form action="test.php" method="GET">
             <div class="form-group">
-                <label for="familyIndex">Family Index</label>
+                <label for="">Family Index</label>
                 <input type="number" class="form-control" id="familyIndex" name="n" placeholder="Enter family index" required>
             </div>
             <button type="submit" class="btn btn-primary">Submit</button> 
