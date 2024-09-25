@@ -1,13 +1,8 @@
-i<?php
+<?php
     $families = file_get_contents("Famiglie.json");
     $db = json_decode($families);
     //var_dump($db);
-    $taxIdCode = $_GET["tic"];
-
-		if (!preg_match('/^[A-Z0-9]{16}$/', $taxIdCode)) {
-			echo "Invalid tax id code provided. It must be 16 characters long and contain only uppercase letters and numbers.";
-			exit;
-		}
+    $famId = $_GET["fam-id"];
 
     $person = null;
 
@@ -41,15 +36,16 @@ i<?php
     $fields["targa"] = "Car License Plate";
     $fields["part_iva"] = "VAT Number";
 
+		$people = [];
+
 		foreach ($db as $item) {
-				if ($item->cod_fis == $taxIdCode) {
-						$person = $item;
-						break;
+				if ($item->id_famiglia == $famId) {
+						array_push($people, $item);
 				}
 		}
 
-		if ($person === null) {
-			echo "No person found with the tax id code provided ({$taxIdCode}).";
+		if (empty($people)) {
+			echo "No person found with the family id provided ({$famId}).";
 			exit;
 		}
 ?>
@@ -68,7 +64,8 @@ i<?php
 <body>
     <div class="container mt-5">
         <div class="row">
-            <div class="col-md-4">
+					<?php foreach ($people as $person): ?>
+            <div class="col-md-4">		
                 <div class="card">
                     <img src="img/female.jpg" class="card-img-top" alt="Card Image">
                     <div class="card-body">
@@ -78,33 +75,36 @@ i<?php
                     </div>
                 </div>
             </div>
+					<?php endforeach; ?>
         </div>
     </div>
 
 
     <!-- Modal -->
-    <div class="modal fade" id="infoModal" tabindex="-1" role="dialog" aria-labelledby="infoModalLabel<?php echo $person->id; ?>" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="infoModalLabel<?php echo $person->id; ?>">Family Member Information</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <?php
-                    foreach ($fields as $field => $label) {
-												echo "<p><strong>{$label}:</strong> {$person->$field}</p>";
-											}
-                    ?>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
+		<?php foreach ($people as $person): ?>
+			<div class="modal fade" id="infoModal" tabindex="-1" role="dialog" aria-labelledby="infoModalLabel<?php echo $person->id; ?>" aria-hidden="true">
+					<div class="modal-dialog" role="document">
+							<div class="modal-content">
+									<div class="modal-header">
+											<h5 class="modal-title" id="infoModalLabel<?php echo $person->id; ?>">Family Member Information</h5>
+											<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+													<span aria-hidden="true">&times;</span>
+											</button>
+									</div>
+									<div class="modal-body">
+											<?php
+											foreach ($fields as $field => $label) {
+													echo "<p><strong>{$label}:</strong> {$person->$field}</p>";
+												}
+											?>
+									</div>
+									<div class="modal-footer">
+											<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+									</div>
+							</div>
+					</div>
+			</div>
+		<?php endforeach; ?>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
