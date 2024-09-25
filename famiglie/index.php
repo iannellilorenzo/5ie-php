@@ -57,7 +57,7 @@
         <form action="province.php" method="GET">
             <div class="form-group">
                 <label for="province">Province</label>
-                <input type="number" class="form-control" id="province" name="prov" placeholder="Enter province" required>
+                <input type="text" class="form-control" id="province" name="prov" placeholder="Enter province" required>
             </div>
             <button type="submit" class="btn btn-primary">Submit</button>
         </form>
