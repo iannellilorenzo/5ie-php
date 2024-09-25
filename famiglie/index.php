@@ -17,7 +17,7 @@
         <form action="family-index.php" method="GET">
             <div class="form-group">
                 <label for="familyIndex">Family Index</label>
-                <input type="number" class="form-control" id="familyIndex" name="n" placeholder="Enter family index" required>
+                <input type="number" class="form-control" id="familyIndex" name="index" placeholder="Enter family index" required>
             </div>
             <button type="submit" class="btn btn-primary">Submit</button>
         </form>
@@ -27,7 +27,7 @@
         <form action="tax-id-code.php" method="GET">
             <div class="form-group">
                 <label for="taxIdCode">Tax ID Code</label>
-                <input type="number" class="form-control" id="taxIdCode" name="tic" placeholder="Enter tax id code" required>
+                <input type="text" class="form-control" id="taxIdCode" name="tic" placeholder="Enter tax id code" required>
             </div>
             <button type="submit" class="btn btn-primary">Submit</button>
         </form>
@@ -47,7 +47,7 @@
         <form action="greater-age.php" method="GET">
             <div class="form-group">
                 <label for="greaterAge">Members with age greater than</label>
-                <input type="number" class="form-control" id="greaterAge" name="n" placeholder="Enter age" required>
+                <input type="number" class="form-control" id="greaterAge" name="min-age" placeholder="Enter age" required>
             </div>
             <button type="submit" class="btn btn-primary">Submit</button>
         </form>
@@ -56,8 +56,8 @@
 
         <form action="province.php" method="GET">
             <div class="form-group">
-                <label for="province"></label>
-                <input type="number" class="form-control" id="province" name="n" placeholder="Enter province" required>
+                <label for="province">Province</label>
+                <input type="number" class="form-control" id="province" name="prov" placeholder="Enter province" required>
             </div>
             <button type="submit" class="btn btn-primary">Submit</button>
         </form>
