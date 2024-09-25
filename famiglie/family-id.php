@@ -67,7 +67,10 @@
 					<?php foreach ($people as $person): ?>
             <div class="col-md-4">		
                 <div class="card">
-                    <img src="img/female.jpg" class="card-img-top" alt="Card Image">
+										<?php
+                      $maleOrFemale = $person->sesso == 'M' ? 'img/male.jpg' : 'img/female.jpg';
+                    ?>
+                    <img src="<?php echo $maleOrFemale; ?>" class="card-img-top" alt="Card Image">
                     <div class="card-body">
                         <h5 class="card-title"><?php echo $person->cognome . " " . $person->nome; ?></h5>
                         <p class="card-text"></p>
