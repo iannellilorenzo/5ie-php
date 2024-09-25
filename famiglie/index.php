@@ -46,7 +46,7 @@
 
         <form action="greater-age.php" method="GET">
             <div class="form-group">
-                <label for="greaterAge">Members with age greater than</label>
+                <label for="greater-age">Members with age greater than</label>
                 <input type="number" class="form-control" id="greaterAge" name="min-age" placeholder="Enter age" required>
             </div>
             <button type="submit" class="btn btn-primary">Submit</button>
