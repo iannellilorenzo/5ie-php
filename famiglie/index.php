@@ -126,7 +126,7 @@
 
 <body>
     <div class="container mt-5">
-        <h1 class="alert alert-info">Gestionale Famiglie</h1>
+        <h1 class="alert alert-info">Families</h1>
         <form action="family-index.php" method="GET">
             <div class="form-group">
                 <label for="familyIndex">Family Index</label>
@@ -140,7 +140,7 @@
         <form action="tax-id-code.php" method="GET">
             <div class="form-group">
                 <label for="taxIdCode">Tax ID Code</label>
-                <input type="text" class="form-control" id="taxIdCode" name="tic" placeholder="Enter tax id code" required>
+                <input type="text" class="form-control" id="taxIdCode" name="tic" placeholder="Enter tax id code" pattern="[A-Za-z0-9{16}]" required>
             </div>
             <button type="submit" class="btn btn-primary">Submit</button>
         </form>

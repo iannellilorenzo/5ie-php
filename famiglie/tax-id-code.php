@@ -2,12 +2,7 @@
     $families = file_get_contents("Famiglie.json");
     $db = json_decode($families);
     //var_dump($db);
-    $taxIdCode = $_GET["tic"];
-
-		if (!preg_match('/^[A-Z0-9]{16}$/', $taxIdCode)) {
-			echo "Invalid tax id code provided. It must be 16 characters long and contain only uppercase letters and numbers.";
-			exit;
-		}
+    $taxIdCode = strtoupper($_GET["tic"]);
 
     $person = null;
 
