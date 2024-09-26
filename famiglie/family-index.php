@@ -49,22 +49,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestionale famiglie</title>
+    <title>Families Management</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body>
     <div class="container mt-5">
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card">
+        <div class="jumbotron text-center">
+            <h1 class="display-4">Family Member Details</h1>
+            <p class="lead">Detailed information about the selected family member</p>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card mb-4">
                     <?php
                         $maleOrFemale = $person->sesso == 'M' ? 'img/male.jpg' : 'img/female.jpg';
                     ?>
                     <img src="<?php echo $maleOrFemale; ?>" class="card-img-top" alt="Card Image">
                     <div class="card-body">
                         <h5 class="card-title"><?php echo $person->cognome . " " . $person->nome; ?></h5>
-                        <p class="card-text"></p>
+                        <p class="card-text">Role: <?php echo $person->tipo; ?></p>
+                        <p class="card-text">Date of Birth: <?php echo $person->data_nascita; ?></p>
                         <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#infoModal">Tell me more</button>
                     </div>
                 </div>
