@@ -3,6 +3,12 @@
     $db = json_decode($families);
     //var_dump($db);
     $index = $_GET["index"];
+
+    if ($index < 0 || $index >= count($db)) {
+        echo "Index must be between 0 and " . (count($db) - 1);
+        exit();
+    }
+
     $person = $db[$index];
 
     // Array to display the info better in the modal
