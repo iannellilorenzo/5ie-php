@@ -1,0 +1,38 @@
+[
+    {
+      "id": "LRMNVL",
+      "titolo": "Introduzione al Trading",
+      "data": "23/10/24",
+      "materia": "Trading Online",
+      "prezzo": "20.95€",
+      "descrizione": "Corso che parla dell’introduzione al Trading Online",
+      "durata": "6 ore"
+    },
+    {
+      "id": "FXMRT1",
+      "titolo": "Trading Avanzato",
+      "data": "30/10/24",
+      "materia": "Trading Online",
+      "prezzo": "35.00€",
+      "descrizione": "Corso avanzato per trader esperti.",
+      "durata": "8 ore"
+    },
+    {
+      "id": "CRYPTO123",
+      "titolo": "Investire in Criptovalute",
+      "data": "05/11/24",
+      "materia": "Criptovalute",
+      "prezzo": "25.50€",
+      "descrizione": "Scopri come investire nel mondo delle criptovalute.",
+      "durata": "4 ore"
+    },
+    {
+      "id": "STKMRKT",
+      "titolo": "Fondamenti di Borsa",
+      "data": "12/11/24",
+      "materia": "Mercato Azionario",
+      "prezzo": "30.00€",
+      "descrizione": "Introduzione ai principi del mercato azionario.",
+      "durata": "5 ore"
+    }
+]
