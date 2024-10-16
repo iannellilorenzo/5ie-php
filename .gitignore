@@ -1,3 +1,4 @@
 mmc-webapp-gpoi/secret.key
 mmc-webapp-gpoi/vendor/
 mmc-webapp-gpoi/composer.lock
+mmc-webapp-gpoi/credentials.json
