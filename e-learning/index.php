@@ -8,7 +8,4 @@
     if (count($param)>2)
         for($i=3;$i<count($param);$i++)
             echo ($i-2)." => ". $param[$i]."<br>";
-
-
-    switch
 ?>
