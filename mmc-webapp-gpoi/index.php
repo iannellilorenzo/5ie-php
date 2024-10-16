@@ -19,6 +19,8 @@
           <label for="docTitle">Utilizza la nostra base creando un Documento Google</label>
           <input type="text" class="form-control" id="docTitle" name="docTitle" placeholder="Inserisci il titolo del documento" required>
         </div>
+        <button type="submit" class="btn btn-primary btn-block">Crea documento</button>
+        <div id="docId">L'id del tuo documento appena creato è il seguente, che trovi anche nel documento stesso: </div>
         <div class="form-group">
           <label for="fileUpload">Hai già il file compilato? Inviacelo e noi lo controlleremo per te</label>
           <div class="custom-file">
