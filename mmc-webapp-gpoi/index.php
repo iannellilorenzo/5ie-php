@@ -21,7 +21,7 @@
         </div>
         <input type="hidden" id="action" name="action" value="">
         <button type="submit" class="btn btn-primary btn-block" onclick="setAction('createDoc')">Crea documento</button>
-        <div id="docId">L'id del tuo documento appena creato è il seguente, che trovi anche nel documento stesso: </div>
+        <div id="docId"></div>
         <div class="form-group">
           <label for="fileUpload">Hai già il file compilato? Inviacelo e noi lo controlleremo per te</label>
           <div class="custom-file">
@@ -113,7 +113,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   
   // Check if the document was created successfully
   if ($docId) {
-    echo "<script>document.getElementById('docId').innerText += ' Document created with ID: {$docId}';</script>";
+    $url = "https://docs.google.com/document/d/";
+    echo "<script>document.getElementById('docId').innerHTML = 'Puoi aprire il documento Google <a href='{$url}{$docId}' target='_blank'>cliccandomi</a>';</script>";
   } else {
     echo "<script>alert('Failed to create document.');</script>";
   }
