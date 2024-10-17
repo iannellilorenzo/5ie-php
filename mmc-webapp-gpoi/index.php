@@ -53,86 +53,84 @@
   </body>
 </html>
 
-<?php 
-  // Include the Google API PHP Client
-  require __DIR__ . '/vendor/autoload.php';
-  use Google\Client;
-  use Google\Service\Docs;
 
-  // Define the paths to the credentials and token files so that the Google API Client can access them
-  // anytime instead of logging in every time
-  define('CREDENTIALS_PATH', __DIR__ . '/credentials.json');
-  define('TOKEN_PATH', __DIR__ . '/token.json');
+<?php
+require __DIR__ . '/vendor/autoload.php';
+use Google\Client;
+use Google\Service\Docs;
+use Google\Service\Drive;
 
-  // Function to authenticate with Google OAuth 2.0
-  function getClient()
-  {
-    $client = new Client();
-    $client->setApplicationName('Google Docs API PHP');
-    $client->setScopes([Docs::DOCUMENTS, 'https://www.googleapis.com/auth/drive']);
-    $client->setAuthConfig(CREDENTIALS_PATH);
-    $client->setAccessType('offline');
-    $client->setPrompt('select_account consent');
+session_start();
 
-    // Load previously authorized token from a file, if it exists.
-    if (file_exists(TOKEN_PATH)) {
-      $accessToken = json_decode(file_get_contents(TOKEN_PATH), true);
-      $client->setAccessToken($accessToken);
+define('CREDENTIALS_PATH', __DIR__ . '/credentials.json');
+define('TOKEN_PATH', __DIR__ . '/token.json');
+
+function getClient() {
+  $client = new Client();
+  $client->setApplicationName('Google Docs API PHP');
+  $client->setScopes([Docs::DOCUMENTS, Drive::DRIVE]);
+  $client->setAuthConfig(CREDENTIALS_PATH);
+  $client->setAccessType('offline');
+  $client->setPrompt('select_account consent');
+
+  if (file_exists(TOKEN_PATH)) {
+    $accessToken = json_decode(file_get_contents(TOKEN_PATH), true);
+    $client->setAccessToken($accessToken);
+  }
+
+  if ($client->isAccessTokenExpired()) {
+    if ($client->getRefreshToken()) {
+      $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
+    } else {
+      // Return the auth URL for the client to handle
+      return $client->createAuthUrl();
     }
-
-    // If there is no previous token or it is expired, get a new one.
-    if ($client->isAccessTokenExpired()) {
-      if ($client->getRefreshToken()) {
-        // Refresh the token
-        $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
-      } else {
-        // Create the authorization URL
-        $authUrl = $client->createAuthUrl();
-        printf("Open the following link in your browser:\n%s\n", $authUrl);
-        printf("Enter the verification code: ");
-
-        // Handle the redirection in a web context
-        if (isset($_GET['code'])) {
-          $token = $client->fetchAccessTokenWithAuthCode($_GET['code']);
-          $client->setAccessToken($token);
-
-          // Save the token to a file
-          if (!file_exists(dirname(TOKEN_PATH))) {
-            mkdir(dirname(TOKEN_PATH), 0700, true);
-          }
-          file_put_contents(TOKEN_PATH, json_encode($client->getAccessToken()));
-        } else {
-          exit; // If there's no code, exit the script
-        }
-      }
-    }
-
-    return $client;
   }
 
-  if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Create a Google Doc
-    $docTitle = $_POST['docTitle'];
-    $docId = createGoogleDoc($docTitle);
-    echo "<script>document.getElementById(\"docId\").innerText += \" {$docId}\";</script>";
-    echo "<script>window.open('https://docs.google.com/document/d/{$docId}', '_blank', 'noopener');</script>";
+  return $client;
+}
+
+if (isset($_GET['code'])) {
+  $client = new Client();
+  $client->setAuthConfig(CREDENTIALS_PATH);
+  $client->authenticate($_GET['code']);
+  $accessToken = $client->getAccessToken();
+  file_put_contents(TOKEN_PATH, json_encode($accessToken));
+  header('Location: ' . filter_var($_SERVER['PHP_SELF'], FILTER_SANITIZE_URL));
+  exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $docTitle = $_POST['docTitle'];
+  $client = getClient();
+
+  if (is_string($client)) {
+    // If client is a string, it's the auth URL
+    echo "<script>window.open('$client', '_blank', 'noopener');</script>";
   }
 
-  function createGoogleDoc($title) {
-    // Authenticate the client 
-    $client = getClient();
-
-    // Create a Google Docs service
-    $service = new Google\Service\Docs($client);
-
-    // Create a new Google Doc
-    $document = new Google\Service\Docs\Document([
-      'title' => $title
-    ]);
-
-    // Create the actual Google Doc
-    $createdDoc = $service->documents->create($document);
-
-    return $createdDoc->getDocumentId();
+  $docId = createGoogleDoc($docTitle);
+  
+  // Check if the document was created successfully
+  if ($docId) {
+    echo "<script>document.getElementById('docId').innerText += ' Document created with ID: {$docId}';</script>";
+  } else {
+    echo "<script>alert('Failed to create document.');</script>";
   }
+}
+
+function createGoogleDoc($title) {
+  $client = getClient();
+  if (is_string($client)) {
+    // If client is a string, it's the auth URL
+    echo "<script>window.open('$client', '_blank', 'noopener');</script>";
+    exit;
+  }
+  $service = new Docs($client);
+
+  $document = new Docs\Document(['title' => $title]);
+  $createdDoc = $service->documents->create($document);
+
+  return $createdDoc->getDocumentId();
+}
 ?>
