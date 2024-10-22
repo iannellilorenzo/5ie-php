@@ -1,38 +1,74 @@
 [
     {
-      "id": "LRM3VL",
-      "titolo": "Introduzione al Trading",
-      "data": "23/10/24",
-      "materia": "Trading Online",
-      "prezzo": "20.95€",
-      "descrizione": "Corso che parla dell’introduzione al Trading Online",
-      "durata": "6 ore"
+        "id": "LRM3VL",
+        "titolo": "Introduzione al Trading Aggiornato",
+        "data": "23\/10\/24",
+        "materia": "Trading Online",
+        "costo": {
+            "prezzo": "20.95",
+            "valuta": "\u20ac"
+        },
+        "descrizione": "Corso che parla dell\u2019introduzione al Trading Online",
+        "durata": "6 ore"
     },
     {
-      "id": "FXMRT1",
-      "titolo": "Trading Avanzato",
-      "data": "30/10/24",
-      "materia": "Trading Online",
-      "prezzo": "35.00€",
-      "descrizione": "Corso avanzato per trader esperti.",
-      "durata": "8 ore"
+        "id": "FXMRT1",
+        "titolo": "Trading Avanzato",
+        "data": "30\/10\/24",
+        "materia": "Trading Online",
+        "costo": {
+            "prezzo": "35.00",
+            "valuta": "\u20ac"
+        },
+        "descrizione": "Corso avanzato per trader esperti.",
+        "durata": "8 ore"
     },
     {
-      "id": "CRO1P3",
-      "titolo": "Investire in Criptovalute",
-      "data": "05/11/24",
-      "materia": "Criptovalute",
-      "prezzo": "25.50€",
-      "descrizione": "Scopri come investire nel mondo delle criptovalute.",
-      "durata": "4 ore"
+        "id": "CRO1P3",
+        "titolo": "Investire in Criptovalute",
+        "data": "05\/11\/24",
+        "materia": "Criptovalute",
+        "costo": {
+            "prezzo": "25.50",
+            "valuta": "\u20ac"
+        },
+        "descrizione": "Scopri come investire nel mondo delle criptovalute.",
+        "durata": "4 ore"
     },
     {
-      "id": "STM0KT",
-      "titolo": "Fondamenti di Borsa",
-      "data": "12/11/24",
-      "materia": "Mercato Azionario",
-      "prezzo": "30.00€",
-      "descrizione": "Introduzione ai principi del mercato azionario.",
-      "durata": "5 ore"
+        "id": "STM0KT",
+        "titolo": "Fondamenti di Borsa",
+        "data": "12\/11\/24",
+        "materia": "Mercato Azionario",
+        "costo": {
+            "prezzo": "30.00",
+            "valuta": "\u20ac"
+        },
+        "descrizione": "Introduzione ai principi del mercato azionario.",
+        "durata": "5 ore"
+    },
+    {
+        "id": "E4U2GV",
+        "titolo": "Nuovo Corso",
+        "data": "15\/12\/24",
+        "materia": "Nuova Materia",
+        "costo": {
+            "prezzo": "40.00",
+            "valuta": "\u20ac"
+        },
+        "descrizione": "Descrizione del nuovo corso.",
+        "durata": "20 ore"
+    },
+    {
+        "id": "7VC3DY",
+        "titolo": "I sistemi distribuiti",
+        "data": "15\/12\/24",
+        "materia": "TPSIT",
+        "costo": {
+            "prezzo": "100.00",
+            "valuta": "\u20ac"
+        },
+        "descrizione": "Descrizione del nuovo corso.",
+        "durata": "20 ore"
     }
 ]

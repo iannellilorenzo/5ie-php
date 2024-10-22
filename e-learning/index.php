@@ -20,22 +20,14 @@ switch ($method) {
         }
         break;
     case 'POST':
-        if (isset($param[2]) && $param[2] == 'corsi') {
-            createCourse();
-        } else {
-            echo json_encode(["message" => "Invalid path"]);
-        }
+        createCourse();
         break;
     case 'PUT':
-        if (isset($param[2]) && $param[2] == 'corsi') {
-            updateCourse($param[3]);
-        } else {
-            echo json_encode(["message" => "Invalid path"]);
-        }
+        updateCourse();
         break;
     case 'DELETE':
         if (isset($param[2]) && $param[2] == 'corsi') {
-            deleteCourse($param[3]);
+            // deleteCourse($param[3]);
         } else {
             echo json_encode(["message" => "Invalid path"]);
         }
@@ -95,4 +87,83 @@ function linearSearch($courses, $id) {
     }
     return null;
 }
-?>
+
+// Function to generate a unique ID
+function generateId() {
+    $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    $id = '';
+    for ($i = 0; $i < 6; $i++) {
+        $id .= $characters[rand(0, strlen($characters) - 1)];
+    }
+    return $id;
+}
+
+// Function to create a new course
+function createCourse() {
+    $jsonFile = 'corsi.json';
+    $jsonData = file_get_contents('php://input'); // Read the raw POST data
+    $newCourse = json_decode($jsonData, true);
+
+    if (!isset($newCourse['titolo']) || !isset($newCourse['data']) || !isset($newCourse['materia']) || !isset($newCourse['costo']) || !isset($newCourse['descrizione']) || !isset($newCourse['durata'])) {
+        echo json_encode(["message" => "Invalid course data"]);
+        return;
+    }
+
+    if (file_exists($jsonFile)) {
+        $courses = json_decode(file_get_contents($jsonFile), true);
+    } else {
+        $courses = [];
+    }
+
+    $newCourse = array_merge(['id' => generateId()], $newCourse); // Ensure 'id' is the first field
+    $courses[] = $newCourse;
+
+    file_put_contents($jsonFile, json_encode($courses, JSON_PRETTY_PRINT));
+    echo json_encode($newCourse);
+}
+
+// Function to update an existing course
+function updateCourse() {
+    $jsonFile = 'corsi.json';
+    $jsonData = file_get_contents('php://input'); // Read the raw PUT data
+    $updatedData = json_decode($jsonData, true);
+
+    if (!isset($updatedData['id'])) {
+        echo json_encode(["message" => "Course ID is required"]);
+        return;
+    }
+
+    if (file_exists($jsonFile)) {
+        $courses = json_decode(file_get_contents($jsonFile), true);
+    } else {
+        echo json_encode(["message" => "Courses file not found"]);
+        return;
+    }
+
+    $courseFound = false;
+    foreach ($courses as &$course) {
+        if ($course['id'] === $updatedData['id']) {
+            $courseFound = true;
+            foreach ($updatedData as $key => $value) {
+                if ($key !== 'id') {
+                    if ($key === 'costo' && is_array($value)) {
+                        foreach ($value as $costoKey => $costoValue) {
+                            $course['costo'][$costoKey] = $costoValue;
+                        }
+                    } else {
+                        $course[$key] = $value;
+                    }
+                }
+            }
+            break;
+        }
+    }
+
+    if (!$courseFound) {
+        echo json_encode(["message" => "Course not found"]);
+        return;
+    }
+
+    file_put_contents($jsonFile, json_encode($courses, JSON_PRETTY_PRINT));
+    echo json_encode($course);
+}
