@@ -26,7 +26,6 @@ function getClient() {
     if ($client->getRefreshToken()) {
       $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
     } else {
-      // Return the auth URL for the client to handle
       return $client->createAuthUrl();
     }
   }
@@ -57,21 +56,77 @@ function copyGoogleDoc($templateDocId, $title) {
   return $copiedFile->id;
 }
 
-$docId = null;
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'createDoc') {
-  $docTitle = $_POST['docTitle'];
-  $templateDocId = '1Pj8iTzPnyZjy-37ecy5cWWZgEJElZBb115_jypSzVwk';
+function exportGoogleDocAsHtml($docId) {
+  $client = getClient();
+  $driveService = new Drive($client);
 
-  // Proceed with the document creation
-  $docId = copyGoogleDoc($templateDocId, $docTitle);
+  $response = $driveService->files->export($docId, 'text/html', array('alt' => 'media'));
+  $content = $response->getBody()->getContents();
+  
+  return $content;
+}
 
-  if ($docId) {
-    $_SESSION['docId'] = $docId;
-    $docUrl = "https://docs.google.com/document/d/$docId";
-    echo json_encode(['docId' => $docId, 'docUrl' => $docUrl]);
-    exit;
+function extractResponsesFromHtml($htmlContent) {
+  $dom = new DOMDocument();
+  @$dom->loadHTML($htmlContent);
+  $responses = [];
+
+  // Esempio: estrai tutte le risposte dai tag <p> con due <span>
+  $paragraphs = $dom->getElementsByTagName('p');
+  foreach ($paragraphs as $paragraph) {
+    $spans = $paragraph->getElementsByTagName('span');
+    if ($spans->length == 2) {
+      // Utilizziamo il ciclo for per accedere agli elementi della NodeList
+      $question = trim($spans->item(0)->nodeValue);
+      $answer = trim($spans->item(1)->nodeValue);
+      $responses[] = ['question' => $question, 'answer' => $answer];
+    }
+  }
+
+  return $responses;
+}
+
+function generateResult($responses) {
+  // Esempio di logica per generare il risultato basato sulle risposte
+  $firstFiveAnswers = array_slice(array_column($responses, 'answer'), 0, 5);
+  if (count($firstFiveAnswers) == 5 && array_unique($firstFiveAnswers) === ['NO']) {
+    return 'Va tutto bene';
+  } elseif (in_array('SELEZIONA', $firstFiveAnswers)) {
+    return 'Compilare tutto il file';
   } else {
-    echo json_encode(['error' => 'Failed to create document.']);
+    return 'Non va bene';
+  }
+}
+
+$docId = null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+  header('Content-Type: application/json');
+  try {
+    if ($_POST['action'] === 'createDoc') {
+      $docTitle = $_POST['docTitle'];
+      $templateDocId = '1Pj8iTzPnyZjy-37ecy5cWWZgEJElZBb115_jypSzVwk';
+
+      $docId = copyGoogleDoc($templateDocId, $docTitle);
+
+      if ($docId) {
+        $_SESSION['docId'] = $docId;
+        $docUrl = "https://docs.google.com/document/d/$docId";
+        echo json_encode(['docId' => $docId, 'docUrl' => $docUrl]);
+        exit;
+      } else {
+        echo json_encode(['error' => 'Failed to create document.']);
+        exit;
+      }
+    } elseif ($_POST['action'] === 'exportDoc') {
+      $docId = $_POST['docId'];
+      $htmlContent = exportGoogleDocAsHtml($docId);
+      $responses = extractResponsesFromHtml($htmlContent);
+      $result = generateResult($responses);
+      echo json_encode(['result' => $result]);
+      exit;
+    }
+  } catch (Exception $e) {
+    echo json_encode(['error' => $e->getMessage()]);
     exit;
   }
 }
@@ -81,11 +136,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 <html lang="en">
   <head>
     <title>MMC - DVR</title>
-    <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-
-    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <link rel="stylesheet" href="style.css">
     <script src="script.js" defer></script>
@@ -98,7 +150,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <div class="container mt-5" id="main-content">
       <h1 class="text-center mb-4">Movimento Manuale Carichi (MMC) - Cosa puoi fare</h1>
       
-      <?php if (!isset($_GET["docId"])): ?>
       <!-- Form for Creating a Google Doc -->
       <form id="create-doc-form" action="index.php" method="post">
         <input type="hidden" name="action" value="createDoc">
@@ -108,12 +159,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         </div>
         <button type="submit" class="btn btn-primary">Crea Documento</button>
       </form>
-      <?php else: ?>
-      <!-- Form to Display the Document ID and Allow Further Actions -->
-      <div class="alert alert-success" role="alert">
-        Documento Google creato con successo! ID del documento: <?php if (isset($_GET["docId"])) { echo htmlspecialchars($_GET["docId"]); } ?>
-      </div>
-      <?php endif; ?>
+    </div>
+    <div id="doc-content" class="invisible">
+      <!-- Content will be loaded here -->
+    </div>
+    <div id="output" class="mt-5">
+      <!-- Output will be displayed here -->
     </div>
   </body>
 </html>

@@ -32,9 +32,30 @@ function hideLoading() {
 function checkResults() {
   const docId = localStorage.getItem('docId');
   if (docId) {
-    window.location.href = `index.php?docId=${docId}`;
+    fetch('index.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: `action=exportDoc&docId=${docId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.result) {
+        document.getElementById('output').innerText = data.result;
+        hideLoading();
+      } else {
+        alert('Failed to get document content.');
+        hideLoading();
+      }
+    })
+    .catch(error => {
+      console.error('There was a problem with the fetch operation:', error);
+      alert('Failed to get document content.');
+      hideLoading();
+    });
   } else {
     alert('No document ID found.');
+    hideLoading();
   }
-  hideLoading();
 }
