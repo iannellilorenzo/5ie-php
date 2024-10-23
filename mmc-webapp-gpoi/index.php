@@ -60,12 +60,15 @@ function copyGoogleDoc($templateDocId, $title) {
 $docId = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'createDoc') {
   $docTitle = $_POST['docTitle'];
-  $templateDocId = '1cOKUjOhzvpXigS2PqDRiFsqGjY7s9I1TCrJNPJOcoGQ'; // Replace with your template document ID
+  $templateDocId = '1Pj8iTzPnyZjy-37ecy5cWWZgEJElZBb115_jypSzVwk';
+
+  // Proceed with the document creation
   $docId = copyGoogleDoc($templateDocId, $docTitle);
 
   if ($docId) {
     $_SESSION['docId'] = $docId;
-    echo json_encode(['docId' => $docId]);
+    $docUrl = "https://docs.google.com/document/d/$docId";
+    echo json_encode(['docId' => $docId, 'docUrl' => $docUrl]);
     exit;
   } else {
     echo json_encode(['error' => 'Failed to create document.']);
@@ -95,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <div class="container mt-5" id="main-content">
       <h1 class="text-center mb-4">Movimento Manuale Carichi (MMC) - Cosa puoi fare</h1>
       
-      <?php if ($docId === null): ?>
+      <?php if (!isset($_GET["docId"])): ?>
       <!-- Form for Creating a Google Doc -->
       <form id="create-doc-form" action="index.php" method="post">
         <input type="hidden" name="action" value="createDoc">
@@ -108,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       <?php else: ?>
       <!-- Form to Display the Document ID and Allow Further Actions -->
       <div class="alert alert-success" role="alert">
-        Documento Google creato con successo! ID del documento: <?php echo htmlspecialchars($docId); ?>
+        Documento Google creato con successo! ID del documento: <?php if (isset($_GET["docId"])) { echo htmlspecialchars($_GET["docId"]); } ?>
       </div>
       <?php endif; ?>
     </div>

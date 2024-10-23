@@ -1,6 +1,5 @@
 document.getElementById('create-doc-form').addEventListener('submit', function(event) {
   event.preventDefault();
-  showLoading();
 
   const formData = new FormData(this);
   fetch('index.php', {
@@ -11,19 +10,11 @@ document.getElementById('create-doc-form').addEventListener('submit', function(e
   .then(data => {
     if (data.docId) {
       localStorage.setItem('docId', data.docId);
-      document.getElementById('main-content').innerHTML = `
-        <div class="alert alert-success" role="alert">
-          Documento Google creato con successo! ID del documento: ${data.docId}
-        </div>
-      `;
+      window.open(data.docUrl, '_blank'); // Open the Google Doc URL in a new tab
+      showLoading();
     } else {
       alert(data.error);
     }
-    hideLoading();
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    hideLoading();
   });
 });
 
@@ -41,7 +32,7 @@ function hideLoading() {
 function checkResults() {
   const docId = localStorage.getItem('docId');
   if (docId) {
-    window.location.href = `results.php?docId=${docId}`;
+    window.location.href = `index.php?docId=${docId}`;
   } else {
     alert('No document ID found.');
   }
