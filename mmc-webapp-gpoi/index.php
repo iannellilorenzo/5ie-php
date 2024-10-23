@@ -44,31 +44,6 @@ if (isset($_GET['code'])) {
   exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $action = $_POST['action'];
-  $client = getClient();
-
-  if (is_string($client)) {
-    // If client is a string, it's the auth URL
-    echo "<script>window.open('$client', '_blank', 'noopener');</script>";
-    exit;
-  }
-
-  if ($action === 'createDoc') {
-    $docTitle = $_POST['docTitle'];
-    $templateDocId = '1cOKUjOhzvpXigS2PqDRiFsqGjY7s9I1TCrJNPJOcoGQ'; // Template Google Doc of All3
-    $docId = copyGoogleDoc($templateDocId, $docTitle);
-
-    if ($docId) {
-      $_SESSION['docId'] = $docId;
-      header('Location: ' . filter_var($_SERVER['PHP_SELF'], FILTER_SANITIZE_URL));
-      exit;
-    } else {
-      echo "<script>alert('Failed to create document.');</script>";
-    }
-  }
-}
-
 function copyGoogleDoc($templateDocId, $title) {
   $client = getClient();
   $driveService = new Drive($client);
@@ -80,6 +55,22 @@ function copyGoogleDoc($templateDocId, $title) {
   $copiedFile = $driveService->files->copy($templateDocId, $fileMetadata);
 
   return $copiedFile->id;
+}
+
+$docId = null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'createDoc') {
+  $docTitle = $_POST['docTitle'];
+  $templateDocId = '1cOKUjOhzvpXigS2PqDRiFsqGjY7s9I1TCrJNPJOcoGQ'; // Replace with your template document ID
+  $docId = copyGoogleDoc($templateDocId, $docTitle);
+
+  if ($docId) {
+    $_SESSION['docId'] = $docId;
+    echo json_encode(['docId' => $docId]);
+    exit;
+  } else {
+    echo json_encode(['error' => 'Failed to create document.']);
+    exit;
+  }
 }
 ?>
 
@@ -93,42 +84,33 @@ function copyGoogleDoc($templateDocId, $title) {
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
   </head>
   <body>
-    <div class="container mt-5">
+    <div id="loading">
+      <img src="assets/loading.gif" alt="Loading...">
+    </div>
+    <button id="check-results-btn" class="btn btn-primary" onclick="checkResults()">Controlla i risultati</button>
+    <div class="container mt-5" id="main-content">
       <h1 class="text-center mb-4">Movimento Manuale Carichi (MMC) - Cosa puoi fare</h1>
       
+      <?php if ($docId === null): ?>
       <!-- Form for Creating a Google Doc -->
-      <form action="index.php" method="post">
+      <form id="create-doc-form" action="index.php" method="post">
+        <input type="hidden" name="action" value="createDoc">
         <div class="form-group">
           <label for="docTitle">Utilizza la nostra base creando un Documento Google</label>
           <input type="text" class="form-control" id="docTitle" name="docTitle" placeholder="Inserisci il titolo del documento" required>
         </div>
-        <input type="hidden" id="action" name="action" value="">
-        <button type="submit" class="btn btn-primary btn-block" onclick="setAction('createDoc')">Crea documento</button>
-        <div id="docId">
-          <?php
-            if (isset($_SESSION['docId'])) {
-              $docId = $_SESSION['docId'];
-              $url = "https://docs.google.com/document/d/$docId";
-              echo "Puoi aprire il documento Google <a href='$url' target='_blank'>cliccandomi</a>";
-              unset($_SESSION['docId']); // Clear the session variable
-            }
-          ?>
-        </div>
+        <button type="submit" class="btn btn-primary">Crea Documento</button>
       </form>
+      <?php else: ?>
+      <!-- Form to Display the Document ID and Allow Further Actions -->
+      <div class="alert alert-success" role="alert">
+        Documento Google creato con successo! ID del documento: <?php echo htmlspecialchars($docId); ?>
+      </div>
+      <?php endif; ?>
     </div>
-
-    <!-- Optional JavaScript -->
-    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcnd.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-    <script>
-      // Set the action value when the button is clicked
-      function setAction(action) {
-        document.getElementById('action').value = action;
-      }
-    </script>
   </body>
 </html>
