@@ -21,7 +21,12 @@ document.getElementById('create-doc-form').addEventListener('submit', function(e
 function showLoading() {
   document.getElementById('main-content').style.display = 'none';
   document.getElementById('loading').style.display = 'block';
-  document.getElementById('check-results-btn').style.display = 'block';
+  document.getElementById('loading').innerHTML = '<img src="assets/loading.gif" alt="Loading..."><p>Generating document...</p>';
+  
+  setTimeout(() => {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('check-results-btn').style.display = 'block';
+  }, 5000); // Show the button after 5 seconds
 }
 
 function hideLoading() {
@@ -45,7 +50,7 @@ function checkResults() {
         document.getElementById('output').innerText = data.result;
         hideLoading();
       } else {
-        alert('Failed to get document content.');
+        alert('Failed to get document content from data.');
         hideLoading();
       }
     })
