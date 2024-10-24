@@ -48,19 +48,17 @@ function checkResults() {
     .then(data => {
       if (data.result) {
         document.getElementById('output').innerText = data.result;
-        hideLoading();
       } else {
         alert('Failed to get document content from data.');
-        hideLoading();
       }
     })
     .catch(error => {
       console.error('There was a problem with the fetch operation:', error);
       alert('Failed to get document content.');
-      hideLoading();
     });
   } else {
     alert('No document ID found.');
-    hideLoading();
   }
+
+  hideLoading();
 }

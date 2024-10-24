@@ -66,7 +66,12 @@ function exportGoogleDocAsHtml($docId) {
   return $content;
 }
 
-function extractResponsesFromHtml($htmlContent) {
+// Gets the first five responses from the HTML content, which have a structure of
+// <p>
+//  <span>Question</span>
+//  <span>Answer</span>
+// </p>
+function extractFirstFiveResponsesFromHtml($htmlContent) {
   $dom = new DOMDocument();
   @$dom->loadHTML($htmlContent);
   $responses = [];
@@ -75,29 +80,55 @@ function extractResponsesFromHtml($htmlContent) {
   foreach ($paragraphs as $paragraph) {
     $spans = $paragraph->getElementsByTagName('span');
     if ($spans->length == 2) {
-      $question = trim($spans->item(0)->nodeValue);
       $answer = trim($spans->item(1)->nodeValue);
-      $responses[] = ['question' => $question, 'answer' => $answer];
+      $responses[] = $answer;
     }
   }
 
   return $responses;
 }
 
+// Gets the first five responses from the HTML content, which have a structure of
+// <p>
+//  <span>Question</span>
+// </p>
+// <p>
+//  <span>Answer</span>
+// </p>
+function extractResponsesFromHtml($htmlContent) {
+  $dom = new DOMDocument();
+  @$dom->loadHTML($htmlContent);
+  $responses = [];
+  $validResponses = ['SÌ', 'NO', 'SELEZIONA'];
+
+  $paragraphs = $dom->getElementsByTagName('p');
+  foreach ($paragraphs as $paragraph) {
+    $spans = $paragraph->getElementsByTagName('span');
+    if ($spans->length == 1) {
+      $answer = trim($spans->item(0)->nodeValue);
+      if (in_array($answer, $validResponses)) {
+        $responses[] = $answer;
+      }
+    }
+  }
+
+  return $responses;
+}
+
+
 function generateResult($responses) {
-  $firstFiveAnswers = array_slice(array_column($responses, 'answer'), 0, 5);
-  if (count($firstFiveAnswers) == 5 && array_unique($firstFiveAnswers) === ['NO']) {
-    return 'Va tutto bene';
-  } elseif (in_array('SELEZIONA', $firstFiveAnswers)) {
+  if (in_array('SÌ', $responses)) {
+    return 'Continua';
+  } elseif (in_array('SELEZIONA', $responses)) {
     return 'Compilare tutto il file';
   } else {
-    return 'Non va bene';
+    return 'A seguito delle risposte fornite, non è necessario effettuare alcuna azione riguardo il rischio di movimento manuale dei carichi. La situazione si trova quindi in regola con la normativa vigente.';
   }
 }
 
 $docId = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-  header('Content-Type: application/json');
+  header('Content-Type: text/html');
   try {
     if ($_POST['action'] === 'createDoc') {
       $docTitle = $_POST['docTitle'];
@@ -117,9 +148,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     } elseif ($_POST['action'] === 'exportDoc') {
       $docId = $_POST['docId'];
       $htmlContent = exportGoogleDocAsHtml($docId);
-      $responses = extractResponsesFromHtml($htmlContent);
+      echo $htmlContent;
+      $responses = extractFirstFiveResponsesFromHtml($htmlContent);
       $result = generateResult($responses);
-      echo json_encode(['result' => $result]);
+      // echo $result;
       exit;
     }
   } catch (Exception $e) {
@@ -166,9 +198,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         </div>
         <button type="submit" class="btn btn-secondary">Controlla i Risultati</button>
       </form>
-    </div>
-    <div id="doc-content" class="invisible">
-      <!-- Content will be loaded here -->
     </div>
     <div id="output" class="mt-5">
       <!-- Output will be displayed here -->
