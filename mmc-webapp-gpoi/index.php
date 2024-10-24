@@ -71,12 +71,10 @@ function extractResponsesFromHtml($htmlContent) {
   @$dom->loadHTML($htmlContent);
   $responses = [];
 
-  // Esempio: estrai tutte le risposte dai tag <p> con due <span>
   $paragraphs = $dom->getElementsByTagName('p');
   foreach ($paragraphs as $paragraph) {
     $spans = $paragraph->getElementsByTagName('span');
     if ($spans->length == 2) {
-      // Utilizziamo il ciclo for per accedere agli elementi della NodeList
       $question = trim($spans->item(0)->nodeValue);
       $answer = trim($spans->item(1)->nodeValue);
       $responses[] = ['question' => $question, 'answer' => $answer];
@@ -87,7 +85,6 @@ function extractResponsesFromHtml($htmlContent) {
 }
 
 function generateResult($responses) {
-  // Esempio di logica per generare il risultato basato sulle risposte
   $firstFiveAnswers = array_slice(array_column($responses, 'answer'), 0, 5);
   if (count($firstFiveAnswers) == 5 && array_unique($firstFiveAnswers) === ['NO']) {
     return 'Va tutto bene';
@@ -158,6 +155,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
           <input type="text" class="form-control" id="docTitle" name="docTitle" placeholder="Inserisci il titolo del documento" required>
         </div>
         <button type="submit" class="btn btn-primary">Crea Documento</button>
+      </form>
+
+      <!-- Form for Checking Results of an Existing Google Doc -->
+      <form id="check-doc-form" action="index.php" method="post" class="mt-4">
+        <input type="hidden" name="action" value="exportDoc">
+        <div class="form-group">
+          <label for="docId">Inserisci l'ID del Documento Google per controllare i risultati</label>
+          <input type="text" class="form-control" id="docId" name="docId" placeholder="Inserisci l'ID del documento" required>
+        </div>
+        <button type="submit" class="btn btn-secondary">Controlla i Risultati</button>
       </form>
     </div>
     <div id="doc-content" class="invisible">
