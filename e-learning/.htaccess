@@ -1,5 +1,5 @@
 <IfModule mod_rewrite.c>
 RewriteEngine On
 RewriteBase /5IE/e-learning/
-RewriteRule ^(.*)$ index.php?url=$1
+RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
 </IfModule>
