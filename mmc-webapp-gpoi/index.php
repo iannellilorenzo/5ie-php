@@ -66,12 +66,18 @@ function exportGoogleDocAsHtml($docId) {
   return $content;
 }
 
-// Gets the first five responses from the HTML content, which have a structure of this type:
-// <p>
-//  <span>Question</span>
-//  <span>Answer</span>
-// </p>
-function extractFirstFiveResponsesFromHtml($htmlContent, $responsesOffset = 0) {
+/*
+Gets the first five responses from the HTML content, which have a structure of this type:
+<p>
+  <span>
+    Question
+  </span>
+  <span>
+    Answer
+  </span>
+</p>
+*/
+function extractFirstStructureResponsesFromHtml($htmlContent, $responsesOffset = 0) {
   $dom = new DOMDocument();
   @$dom->loadHTML($htmlContent);
   $responses = [];
@@ -91,49 +97,225 @@ function extractFirstFiveResponsesFromHtml($htmlContent, $responsesOffset = 0) {
   return $responses;
 }
 
-// Gets other responses from the HTML content, which have a structure of this type:
-// <p>
-//  <span>Question</span>
-// </p>
-// <p>
-//  <span>Answer</span>
-// </p>
-function extractAdditionalResponsesFromHtml($htmlContent) {
+/*
+Gets the values from a table in the HTML content, the table has a structure of this type:
+<table>
+  <tbody>
+    <tr>
+      <!-- Questa <tr> si può saltare perché non ha nulla di utile -->
+    </tr>
+
+    <tr>
+      <!-- Questa <tr> si può saltare perché non ha nulla di utile -->
+    </tr>
+
+    <tr>
+      <td>
+        <p>
+          <span>
+            Value needed
+          </span>
+        </p>
+      </td>
+
+      <td>
+        <p>
+          <span>
+            Value needed
+          </span>
+        </p>
+      </td>
+
+      <td>
+        <p>
+          <span>
+            Value needed
+          </span>
+        </p>
+      </td>
+
+      <td>
+        <p>
+          <span>
+            Value needed
+          </span>
+        </p>
+      </td>
+
+      <td>
+        <p>
+          <span>
+            Value needed
+          </span>
+        </p>
+      </td>
+
+      <td>
+        <p>
+          <span>
+            Value needed
+          </span>
+        </p>
+      </td>
+    </tr>
+
+    <tr>
+      <!-- Same structure shown above -->
+    </tr>
+
+    <tr>
+      <!-- Same structure shown above -->
+    </tr>
+
+    <tr>
+      <!-- Same structure shown above -->
+    </tr>
+  </tbody>
+</table>
+*/
+function extractTableValuesFromHtml($htmlContent) {
+  $dom = new DOMDocument();
+  @$dom->loadHTML($htmlContent);
+  $values = [];
+
+  $tables = $dom->getElementsByTagName('table');
+
+  // Prendi la seconda tabella
+  $table = $tables->item(1);
+  $rows = $table->getElementsByTagName('tr');
+
+  // Salta le prime due righe
+  for ($i = 2; $i < $rows->length; $i++) {
+    $row = $rows->item($i);
+    $cells = $row->getElementsByTagName('td');
+    $rowValues = [
+      'descrizione' => '',
+      'numero_oggetti_sollevati' => '',
+      'frequenza' => '',
+      'peso' => '',
+      'durata' => '',
+      'numero_lavoratori_coinvolti' => ''
+    ];
+    $allEmpty = true;
+    $hasEmpty = false;
+
+    foreach ($cells as $index => $cell) {
+      $spans = $cell->getElementsByTagName('span');
+      if ($spans->length == 1) {
+        $value = trim($spans->item(0)->nodeValue);
+        if (!empty($value)) {
+          $allEmpty = false;
+          switch ($index) {
+            case 0:
+              $rowValues['descrizione'] = $value;
+              break;
+            case 1:
+              $rowValues['numero_oggetti_sollevati'] = $value;
+              break;
+            case 2:
+              $rowValues['frequenza'] = $value;
+              break;
+            case 3:
+              $rowValues['peso'] = $value;
+              break;
+            case 4:
+              $rowValues['durata'] = $value;
+              break;
+            case 5:
+              $rowValues['numero_lavoratori_coinvolti'] = $value;
+              break;
+          }
+        } else {
+          $hasEmpty = true;
+        }
+      } else {
+        $hasEmpty = true;
+      }
+    }
+
+    if ($allEmpty) {
+      // Ignora la riga se tutte le celle sono vuote
+      continue;
+    } elseif ($hasEmpty) {
+      // Aggiungi un messaggio se c'è almeno una cella vuota
+      return "Compilare tutta la riga o lasciare vuote tutte le celle";
+    } else {
+      // Aggiungi i valori della riga se tutte le celle hanno un valore
+      $values[] = $rowValues;
+    }
+  }
+
+  return $values;
+}
+
+/*
+Gets other responses from the HTML content, which have a structure of this type:
+<p>
+  <span>
+    <br>
+  </span>
+  <span>
+    domanda che non mi serve avere
+  </span>
+</p>
+<p>
+  <span>
+    risposta che mi serve avere
+  </span>
+</p>
+*/
+function extractResponsesFromSecondStructure($htmlContent, $fromStart = true) {
   $dom = new DOMDocument();
   @$dom->loadHTML($htmlContent);
   $responses = [];
   $validResponses = ['SÌ', 'NO', 'SELEZIONA'];
 
   $paragraphs = $dom->getElementsByTagName('p');
-  foreach ($paragraphs as $paragraph) {
+  $startIndex = $fromStart ? 0 : 15; // Se $fromStart è false, inizia dall'indice 15
+
+  $count = 0;
+
+  for ($i = $startIndex; $i < $paragraphs->length; $i++) {
+    $paragraph = $paragraphs->item($i);
     $spans = $paragraph->getElementsByTagName('span');
     if ($spans->length == 1) {
-      $answer = trim($spans->item(0)->nodeValue);
-      if (in_array($answer, $validResponses)) {
-        $responses[] = $answer;
+      $value = trim($spans->item(0)->nodeValue);
+      if (!empty($value) && in_array($value, $validResponses)) {
+        $count++;
+        if ($fromStart || $count > 15) {
+          $responses[] = $value;
+        }
       }
     }
   }
 
+  array_pop($responses); // Rimuovi l'ultima risposta che non serve
+  array_pop($responses); // Rimuovi la penultima risposta che non serve
+
+  foreach ($responses as $response) {
+    echo $response . '<br>';
+  }
   return $responses;
 }
 
 // Funzione per generare il risultato basato sulle risposte
 function generateResult($firstFiveResponses, $htmlContent) {
-  if (in_array('SÌ', $firstFiveResponses)) {
-    $sixResponses = extractFirstFiveResponsesFromHtml($htmlContent, 2);
+  if (in_array('SÌ', $firstFiveResponses) && !in_array('SELEZIONA', $firstFiveResponses)) {
+    $sixResponses = extractFirstStructureResponsesFromHtml($htmlContent, 2);
     $sixth = array_pop($sixResponses);
     if ($sixth === 'SELEZIONA') {
       return 'Sesta: Compilare tutto il file';
     } elseif ($sixth === 'NO') {
       return 'Sesta: A seguito delle risposte fornite, non è necessario effettuare alcuna azione riguardo il rischio di movimento manuale dei carichi. La situazione si trova quindi in regola con la normativa vigente.';
     } else {
-      $sevenResponses = extractFirstFiveResponsesFromHtml($htmlContent, 3);
+      $sevenResponses = extractFirstStructureResponsesFromHtml($htmlContent, 3);
       $seventh = array_pop($sevenResponses);
-      if ($seventh === 'SELEZIONA') {
+      if ($seventh === 'NO') {
+        // Continua con il controllo delle risposte aggiuntive
+        $tableValues = extractTableValuesFromHtml($htmlContent);
+        $lastResponses = extractResponsesFromSecondStructure($htmlContent, false);
+      } elseif ($seventh === 'SELEZIONA') {
         return 'Settima: Compilare tutto il file';
-      } elseif ($seventh === 'NO') {
-        return 'Settima: Problemi';
       } else {
         return 'Settima: A seguito delle risposte fornite, non è necessario effettuare alcuna azione riguardo il rischio di movimento manuale dei carichi. La situazione si trova quindi in regola con la normativa vigente.';
       }
@@ -168,7 +350,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $docId = $_POST['docId'];
       $htmlContent = exportGoogleDocAsHtml($docId);
       // echo $htmlContent; // Debug
-      $firstFiveResponses = extractFirstFiveResponsesFromHtml($htmlContent);
+      $firstFiveResponses = extractFirstStructureResponsesFromHtml($htmlContent);
       $result = generateResult($firstFiveResponses, $htmlContent);
       echo $result;
       exit;
