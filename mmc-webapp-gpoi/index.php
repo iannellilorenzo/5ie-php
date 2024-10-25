@@ -66,12 +66,12 @@ function exportGoogleDocAsHtml($docId) {
   return $content;
 }
 
-// Gets the first five responses from the HTML content, which have a structure of
+// Gets the first five responses from the HTML content, which have a structure of this type:
 // <p>
 //  <span>Question</span>
 //  <span>Answer</span>
 // </p>
-function extractFirstFiveResponsesFromHtml($htmlContent) {
+function extractFirstFiveResponsesFromHtml($htmlContent, $responsesOffset = 0) {
   $dom = new DOMDocument();
   @$dom->loadHTML($htmlContent);
   $responses = [];
@@ -82,20 +82,23 @@ function extractFirstFiveResponsesFromHtml($htmlContent) {
     if ($spans->length == 2) {
       $answer = trim($spans->item(1)->nodeValue);
       $responses[] = $answer;
+      if (count($responses) >= 5 + $responsesOffset) {
+        break;
+      }
     }
   }
 
   return $responses;
 }
 
-// Gets the first five responses from the HTML content, which have a structure of
+// Gets other responses from the HTML content, which have a structure of this type:
 // <p>
 //  <span>Question</span>
 // </p>
 // <p>
 //  <span>Answer</span>
 // </p>
-function extractResponsesFromHtml($htmlContent) {
+function extractAdditionalResponsesFromHtml($htmlContent) {
   $dom = new DOMDocument();
   @$dom->loadHTML($htmlContent);
   $responses = [];
@@ -115,14 +118,30 @@ function extractResponsesFromHtml($htmlContent) {
   return $responses;
 }
 
-
-function generateResult($responses) {
-  if (in_array('SÌ', $responses)) {
-    return 'Continua';
-  } elseif (in_array('SELEZIONA', $responses)) {
-    return 'Compilare tutto il file';
+// Funzione per generare il risultato basato sulle risposte
+function generateResult($firstFiveResponses, $htmlContent) {
+  if (in_array('SÌ', $firstFiveResponses)) {
+    $sixResponses = extractFirstFiveResponsesFromHtml($htmlContent, 2);
+    $sixth = array_pop($sixResponses);
+    if ($sixth === 'SELEZIONA') {
+      return 'Sesta: Compilare tutto il file';
+    } elseif ($sixth === 'NO') {
+      return 'Sesta: A seguito delle risposte fornite, non è necessario effettuare alcuna azione riguardo il rischio di movimento manuale dei carichi. La situazione si trova quindi in regola con la normativa vigente.';
+    } else {
+      $sevenResponses = extractFirstFiveResponsesFromHtml($htmlContent, 3);
+      $seventh = array_pop($sevenResponses);
+      if ($seventh === 'SELEZIONA') {
+        return 'Settima: Compilare tutto il file';
+      } elseif ($seventh === 'NO') {
+        return 'Settima: Problemi';
+      } else {
+        return 'Settima: A seguito delle risposte fornite, non è necessario effettuare alcuna azione riguardo il rischio di movimento manuale dei carichi. La situazione si trova quindi in regola con la normativa vigente.';
+      }
+    }
+  } else if (in_array('SELEZIONA', $firstFiveResponses)) {
+    return 'Cinque: Compilare tutto il file.';
   } else {
-    return 'A seguito delle risposte fornite, non è necessario effettuare alcuna azione riguardo il rischio di movimento manuale dei carichi. La situazione si trova quindi in regola con la normativa vigente.';
+    return 'Cinque: A seguito delle risposte fornite, non è necessario effettuare alcuna azione riguardo il rischio di movimento manuale dei carichi. La situazione si trova quindi in regola con la normativa vigente.';
   }
 }
 
@@ -148,10 +167,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     } elseif ($_POST['action'] === 'exportDoc') {
       $docId = $_POST['docId'];
       $htmlContent = exportGoogleDocAsHtml($docId);
-      echo $htmlContent;
-      $responses = extractFirstFiveResponsesFromHtml($htmlContent);
-      $result = generateResult($responses);
-      // echo $result;
+      // echo $htmlContent; // Debug
+      $firstFiveResponses = extractFirstFiveResponsesFromHtml($htmlContent);
+      $result = generateResult($firstFiveResponses, $htmlContent);
+      echo $result;
       exit;
     }
   } catch (Exception $e) {
