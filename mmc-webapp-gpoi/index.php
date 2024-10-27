@@ -201,14 +201,46 @@ function printAssociativeArrayForDebugging($associativeArray) {
   echo "<pre>" . htmlspecialchars(print_r($associativeArray, true)) . "</pre>";
 }
 
+function deleteLinesFromGoogleDoc($documentId, $startIndex) {
+    $client = getClient();
+    $service = new Google\Service\Docs($client);
+
+    // Ottieni il contenuto del documento
+    $document = $service->documents->get($documentId);
+    $content = $document->getBody()->getContent();
+    $lastElement = end($content);
+    $endIndex = $lastElement->getEndIndex() - 1;
+
+    // Crea una richiesta di aggiornamento per rimuovere le righe specificate
+    $requests = [
+        new Google\Service\Docs\Request([
+            'deleteContentRange' => [
+                'range' => [
+                    'startIndex' => $startIndex,
+                    'endIndex' => $endIndex
+                ]
+            ]
+        ])
+    ];
+
+    // Esegui la richiesta di aggiornamento
+    $batchUpdateRequest = new Google\Service\Docs\BatchUpdateDocumentRequest([
+        'requests' => $requests
+    ]);
+    $service->documents->batchUpdate($documentId, $batchUpdateRequest);
+
+    return "Le righe da $startIndex a $endIndex sono state cancellate.";
+}
+
 // Funzione per generare il risultato basato sulle risposte
-function generateResult($htmlContent) {
+function generateResult($htmlContent, $docId) {
   $firstFiveResponses = extractFirstStructureResponsesUsingRegex($htmlContent, 0);
   if (in_array('SELEZIONA', $firstFiveResponses)) {
     return 'Cinque: Compilare tutto il file.';
   }
   
   if (!in_array('SI', $firstFiveResponses)) {
+    deleteLinesFromGoogleDoc($docId, 530);
     return 'Cinque: A seguito delle risposte fornite, non è necessario effettuare alcuna azione riguardo il rischio di movimento manuale dei carichi. La situazione si trova quindi in regola con la normativa vigente.';
   }
 
@@ -240,7 +272,7 @@ function generateResult($htmlContent) {
   }
   $maxWeight = max($tableValues);
 
-  $responsesBeforeCalculations = extractResponsesFromSecondStructureUsingRegex($htmlContent, 2);
+  $responsesBeforeCalculations = extractResponsesFromSecondStructureUsingRegex($htmlContent);
   $fifteenResponsesBC = array_slice($responsesBeforeCalculations, 0, 15);
   $unique = array_unique($fifteenResponsesBC);
   
@@ -365,8 +397,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $docId = $_POST['docId'];
     $htmlContent = exportGoogleDocAsHtml($docId);
     // echo $htmlContent; // Debug
-    $result = generateResult($htmlContent);
-    echo $result;
+    $result = generateResult($htmlContent, $docId);
     exit;
   }
 }
