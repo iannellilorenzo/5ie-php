@@ -25,6 +25,7 @@ function getClient() {
   if ($client->isAccessTokenExpired()) {
     if ($client->getRefreshToken()) {
       $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
+      file_put_contents(TOKEN_PATH, json_encode($client->getAccessToken()));
     } else {
       return $client->createAuthUrl();
     }
@@ -455,10 +456,12 @@ function generateResult($htmlContent, $docId) {
   return "Il documento google è stato modificato in base ai dati forniti, si prega di ricontrollare.";
 }
 
-$docId = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-  header('Content-Type: text/html');
-  if ($_POST['action'] === 'createDoc') {
+  $action = $_POST['action'];
+  $docId = $_POST['docId'] ?? null;
+
+  if ($action === 'createDoc') {
+    header('Content-Type: application/json');
     $docTitle = $_POST['docTitle'];
     $templateDocId = '1Pj8iTzPnyZjy-37ecy5cWWZgEJElZBb115_jypSzVwk';
 
@@ -467,17 +470,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($docId) {
       $_SESSION['docId'] = $docId;
       $docUrl = "https://docs.google.com/document/d/$docId";
-      echo json_encode(['docId' => $docId, 'docUrl' => $docUrl]);
       exit;
     } else {
       echo json_encode(['error' => 'Failed to create document.']);
       exit;
     }
-  } elseif ($_POST['action'] === 'exportDoc') {
+  } elseif ($action === 'exportDoc') {
+    header('Content-Type: text/html');
     $docId = $_POST['docId'];
     $htmlContent = exportGoogleDocAsHtml($docId);
-    // echo $htmlContent; // Debug
     $result = generateResult($htmlContent, $docId);
+    echo $result;
     exit;
   }
 }
