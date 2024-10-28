@@ -232,6 +232,54 @@ function deleteLinesFromGoogleDoc($documentId, $startIndex) {
     return "Le righe da $startIndex a $endIndex sono state cancellate.";
 }
 
+function getMaxWeightFromTable($array) {
+  $values = [];
+
+  // Itera attraverso l'array e raccoglie i valori agli indici specificati
+  for ($i = 2; $i < count($array); $i += 5) {
+    if (isset($array[$i]) && is_numeric($array[$i])) {
+      $values[] = $array[$i];
+    }
+  }
+
+  // Ritorna il valore più alto tra quelli raccolti
+  if (!empty($values)) {
+    return max($values);
+  }
+
+  return null; // Ritorna null se non ci sono valori validi
+}
+
+function appendTextToGoogleDoc($documentId, $text) {
+    $client = getClient();
+    $service = new Google\Service\Docs($client);
+
+    $document = $service->documents->get($documentId);
+    $content = $document->getBody()->getContent();
+
+    $lastElement = end($content);
+    $endIndex = $lastElement->getEndIndex();
+
+    $requests = [
+        new Google\Service\Docs\Request([
+            'insertText' => [
+                'location' => [
+                    'index' => $endIndex - 1
+                ],
+                'text' => $text
+            ]
+        ])
+    ];
+
+    // Esegui la richiesta di aggiornamento
+    $batchUpdateRequest = new Google\Service\Docs\BatchUpdateDocumentRequest([
+        'requests' => $requests
+    ]);
+    $service->documents->batchUpdate($documentId, $batchUpdateRequest);
+
+    return "Il testo è stato aggiunto alla fine del documento.";
+}
+
 // Funzione per generare il risultato basato sulle risposte
 function generateResult($htmlContent, $docId) {
   $firstFiveResponses = extractFirstStructureResponsesUsingRegex($htmlContent, 0);
@@ -239,9 +287,11 @@ function generateResult($htmlContent, $docId) {
     return 'Cinque: Compilare tutto il file.';
   }
   
+  $stringIfGood = 'Date le condizioni di lavoro descritte nelle risposte fornite alle domande specificate sopra, non è necessario effettuare alcuna azione riguardo il rischio di movimento manuale dei carichi. La situazione lavorativa si trova quindi in regola con la normativa vigente.';
   if (!in_array('SI', $firstFiveResponses)) {
-    deleteLinesFromGoogleDoc($docId, 530);
-    return 'Cinque: A seguito delle risposte fornite, non è necessario effettuare alcuna azione riguardo il rischio di movimento manuale dei carichi. La situazione si trova quindi in regola con la normativa vigente.';
+    echo deleteLinesFromGoogleDoc($docId, 439);
+    appendTextToGoogleDoc($docId, $stringIfGood);
+    return null;
   }
 
   $sixResponses = extractFirstStructureResponsesUsingRegex($htmlContent, 1);
@@ -252,7 +302,9 @@ function generateResult($htmlContent, $docId) {
   }
 
   if ($sixth === 'NO') {
-    return 'Sesta: A seguito delle risposte fornite, non è necessario effettuare alcuna azione riguardo il rischio di movimento manuale dei carichi. La situazione si trova quindi in regola con la normativa vigente.';
+    echo deleteLinesFromGoogleDoc($docId, 548);
+    appendTextToGoogleDoc($docId, $stringIfGood);
+    return null;
   }
   
   $sevenResponses = extractFirstStructureResponsesUsingRegex($htmlContent, 2);
@@ -263,21 +315,25 @@ function generateResult($htmlContent, $docId) {
   }
 
   if ($seventh === 'SI') {
-    return 'Settima: A seguito delle risposte fornite, non è necessario effettuare alcuna azione riguardo il rischio di movimento manuale dei carichi. La situazione si trova quindi in regola con la normativa vigente.';
+    echo deleteLinesFromGoogleDoc($docId, 650);
+    appendTextToGoogleDoc($docId, $stringIfGood);
+    return null;
   }
 
   $tableValues = extractValuesFromTablesUsingRegex($htmlContent);
   if (getType($tableValues) === 'string') {
     return "Tabella `OGGETTI DI PESO SUPERIORE O UGUALE A 3 KG MOVIMENTATI MANUALMENTE NELL'ARCO DELLA GIORNATA LAVORATIVA`: {$tableValues}";
   }
-  $maxWeight = max($tableValues);
+  $maxWeight = getMaxWeightFromTable($tableValues);
 
   $responsesBeforeCalculations = extractResponsesFromSecondStructureUsingRegex($htmlContent);
   $fifteenResponsesBC = array_slice($responsesBeforeCalculations, 0, 15);
   $unique = array_unique($fifteenResponsesBC);
   
   if (count($unique) === 1 && $unique[0] === 'SI') {
-    return 'Fino alla 15: A seguito delle risposte fornite, non è necessario effettuare alcuna azione riguardo il rischio di movimento manuale dei carichi. La situazione si trova quindi in regola con la normativa vigente.';
+    echo deleteLinesFromGoogleDoc($docId, 2954);
+    appendTextToGoogleDoc($docId, $stringIfGood);
+    return null;
   }
   
   if (in_array('SELEZIONA', $fifteenResponsesBC)) {
@@ -370,9 +426,33 @@ function generateResult($htmlContent, $docId) {
   }
 
   // CP x A x B x C x D x E x F x G x H
-  $result = $weightConstant[0] * $lastSevenResponses['altezza']['coefficient'] * $lastSevenResponses['dislocazione']['coefficient'] * $lastSevenResponses['distanza']['coefficient'] * $lastSevenResponses['dislocazione_angolare']['coefficient'] * $lastSevenResponses['giudizio']['coefficient'] * $lastSevenResponses['sollevamento_un_gesto']['coefficient'] * $lastSevenResponses['due_operatori']['coefficient'] * $frequency[0];
-  echo "{$weightConstant[0]} * {$lastSevenResponses['altezza']['coefficient']} * {$lastSevenResponses['dislocazione']['coefficient']} * {$lastSevenResponses['distanza']['coefficient']} * {$lastSevenResponses['dislocazione_angolare']['coefficient']} * {$lastSevenResponses['giudizio']['coefficient']} * {$lastSevenResponses['sollevamento_un_gesto']['coefficient']} * {$lastSevenResponses['due_operatori']['coefficient']} * {$frequency[0]} <br>";
-  return "Il risultato è: {$result}";
+  $recommendedWeight = $weightConstant[0] * $lastSevenResponses['altezza']['coefficient'] * $lastSevenResponses['dislocazione']['coefficient'] * $lastSevenResponses['distanza']['coefficient'] * $lastSevenResponses['dislocazione_angolare']['coefficient'] * $lastSevenResponses['giudizio']['coefficient'] * $lastSevenResponses['sollevamento_un_gesto']['coefficient'] * $lastSevenResponses['due_operatori']['coefficient'] * $frequency[0];
+  
+  $defString = '';
+  if ($recommendedWeight === 0) {
+    $defString = 'Date le condizioni di lavoro descritte nelle risposte fornite alle domande specificate sopra, è necessario procedere al più presto alla riprogettazione del compito.';
+    appendTextToGoogleDoc($docId, $defString);
+    return null;
+  }
+  
+  $weightIndex = $maxWeight / $recommendedWeight;
+  $defString = "Il peso massimo raccomandato è {$recommendedWeight}Kg, calcolato con un peso massimo di {$maxWeight}Kg. L'indice di sollveamento è {$weightIndex}. ";
+
+  if ($weightIndex <= 0.85) {
+    $defString .= 'Date le condizioni di lavoro descritte nelle risposte fornite alle domande specificate sopra, la situazione lavorativa è in area verde e per questo non sono necessari interventi specifici. ';
+  } elseif (0.85 < $weightIndex && $weightIndex < 1) {
+    $defString .= 'Date le condizioni di lavoro descritte nelle risposte fornite alle domande specificate sopra, la situazione lavorativa è in area gialla e per questo si consiglia l\'attivazione dei corsi di formazione e, a discrezione del medico, la sorveglianza sanitaria del personale addetto. ';
+  } elseif (1 < $weightIndex && $weightIndex < 1.25) {
+    $defString .= 'Date le condizioni di lavoro descritte nelle risposte fornite alle domande specificate sopra, la situazione lavorativa è in area rossa e per questo si richiede un intervento di prevenzione primaria, inoltre è necessario attivare la sorveglianza sanitaria del personale addetto. ';
+  } else {
+    $defString .= 'Date le condizioni di lavoro descritte nelle risposte fornite alle domande specificate sopra, la situazione lavorativa è in area rossa e per questo si richiede un intervento immediato di prevenzione primaria, inoltre è necessario attivare la sorveglianza sanitaria del personale addetto. ';
+  }
+
+  $defString .= 'Dopo aver effettuato le modifiche necessarie, si consiglia di ripetere il calcolo per verificare nuovamente la situazione lavorativa.';
+
+  appendTextToGoogleDoc($docId, $defString);
+
+  return "Il documento google è stato modificato in base ai dati forniti, si prega di ricontrollare.";
 }
 
 $docId = null;
