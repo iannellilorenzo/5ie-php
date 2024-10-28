@@ -436,7 +436,7 @@ function generateResult($htmlContent, $docId) {
   }
   
   $weightIndex = $maxWeight / $recommendedWeight;
-  $defString = "Il peso massimo raccomandato è {$recommendedWeight}Kg, calcolato con un peso massimo di {$maxWeight}Kg. L'indice di sollveamento è {$weightIndex}. ";
+  $defString = "Il peso limite raccomandato è {$recommendedWeight}Kg, calcolato con un peso massimo di {$maxWeight}Kg. L'indice di sollveamento è {$weightIndex}. ";
 
   if ($weightIndex <= 0.85) {
     $defString .= 'Date le condizioni di lavoro descritte nelle risposte fornite alle domande specificate sopra, la situazione lavorativa è in area verde e per questo non sono necessari interventi specifici. ';
@@ -520,9 +520,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         </div>
         <button type="submit" class="btn btn-secondary">Controlla i Risultati</button>
       </form>
-    </div>
-    <div id="output" class="mt-5">
-      <!-- Output will be displayed here -->
     </div>
   </body>
 </html>
