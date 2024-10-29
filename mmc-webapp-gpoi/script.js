@@ -1,11 +1,11 @@
 document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('check-results-btn').addEventListener('click', checkResults);
+  document.getElementById('check-results-btn').addEventListener('click', checkResultsFromBtn);
   document.getElementById('create-doc-form').addEventListener('submit', createDoc);
 });
 
 function createDoc(event) {
   event.preventDefault();
-  const docTitle = document.getElementById('docTitle').value;
+  const docTitleFromForm = document.getElementById('docTitle').value;
 
   // Mostra la gif di caricamento
   document.getElementById('loading').style.display = 'block';
@@ -21,7 +21,7 @@ function createDoc(event) {
     },
     body: new URLSearchParams({
       action: 'createDoc',
-      docTitle: docTitle
+      docTitle: docTitleFromForm
     })
   })
   .then(response => response.json())
@@ -29,23 +29,20 @@ function createDoc(event) {
     // Nascondi la gif di caricamento
     document.getElementById('loading').style.display = 'none';
 
-    // Mostra il contenuto principale
-    document.getElementById('main-content').style.display = 'block';
-
-    if (data.error) {
-      alert('Errore: ' + data.error);
+    if (!data.error) {
+      localStorage.setItem('docId', data.docId);
+      window.open(data.docUrl, '_blank');
+      document.getElementById('check-results-btn').style.display = 'block';
     } else {
-      alert('Documento creato con ID: ' + data.docId);
+      // Mostra il contenuto principale in caso di errore
+      document.getElementById('main-content').style.display = 'block';
     }
   })
   .catch(error => {
     console.error('Errore:', error);
-    alert('Si è verificato un errore durante la creazione del documento.');
-    
     // Nascondi la gif di caricamento
     document.getElementById('loading').style.display = 'none';
-
-    // Mostra il contenuto principale
+    // Mostra il contenuto principale in caso di errore
     document.getElementById('main-content').style.display = 'block';
   });
 }
@@ -82,16 +79,61 @@ function checkResults() {
     // Mostra il contenuto principale
     document.getElementById('main-content').style.display = 'block';
 
-    if (data.error) {
-      alert('Errore: ' + data.error);
+  })
+  .catch(error => {
+    console.error('Errore:', error);
+
+    // Nascondi la gif di caricamento
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('output').style.display = 'block';
+
+    // Mostra il contenuto principale
+    document.getElementById('main-content').style.display = 'block';
+  });
+}
+
+function checkResultsFromBtn() {
+  const docId = localStorage.getItem('docId');
+  if (!docId) {
+    alert('No document ID found.');
+    return;
+  }
+
+  document.getElementById('output').style.display = 'none';
+  document.getElementById('main-content').style.display = 'none';
+  document.getElementById('check-results-btn').style.display = 'none';
+
+  // Mostra la gif di caricamento
+  document.getElementById('loading').style.display = 'block';
+
+  // Invia la richiesta al backend
+  fetch('index.php', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({
+      action: 'exportDoc',
+      docId: docId
+    })
+  })
+  .then(response => response.text())
+  .then(data => {
+    // Nascondi la gif di caricamento
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('check-results-btn').style.display = 'none';
+    document.getElementById('output').style.display = 'block';
+
+    if (data.includes('compilare') || data.includes('Tabella')) {
+      document.getElementById('output').innerText = data;
+      document.getElementById('check-results-btn').style.display = 'block';
     } else {
-      alert('Risultati: ' + JSON.stringify(data.result));
+      document.getElementById('output').innerText = 'Il documento google è stato modificato in base ai dati forniti, si prega di ricontrollare.'; 
     }
   })
   .catch(error => {
     console.error('Errore:', error);
-    alert('Si è verificato un errore durante il controllo dei risultati.');
-    
+
     // Nascondi la gif di caricamento
     document.getElementById('loading').style.display = 'none';
 

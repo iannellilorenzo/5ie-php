@@ -285,7 +285,7 @@ function appendTextToGoogleDoc($documentId, $text) {
 function generateResult($htmlContent, $docId) {
   $firstFiveResponses = extractFirstStructureResponsesUsingRegex($htmlContent, 0);
   if (in_array('SELEZIONA', $firstFiveResponses)) {
-    return 'Cinque: Compilare tutto il file.';
+    return 'Si prega di compilare tutto il file prima di sottoporlo al controllo.';
   }
   
   $stringIfGood = 'Date le condizioni di lavoro descritte nelle risposte fornite alle domande specificate sopra, non è necessario effettuare alcuna azione riguardo il rischio di movimento manuale dei carichi. La situazione lavorativa si trova quindi in regola con la normativa vigente.';
@@ -299,7 +299,7 @@ function generateResult($htmlContent, $docId) {
   $sixth = array_pop($sixResponses);
   
   if ($sixth === 'SELEZIONA') {
-    return 'Sesta: Compilare tutto il file';
+    return 'Si prega di compilare tutto il file prima di sottoporlo al controllo.';
   }
 
   if ($sixth === 'NO') {
@@ -312,7 +312,7 @@ function generateResult($htmlContent, $docId) {
   $seventh = array_pop($sevenResponses);
 
   if ($seventh === 'SELEZIONA') {
-    return 'Settima: Compilare tutto il file';
+    return 'Si prega di compilare tutto il file prima di sottoporlo al controllo.';
   }
 
   if ($seventh === 'SI') {
@@ -323,7 +323,7 @@ function generateResult($htmlContent, $docId) {
 
   $tableValues = extractValuesFromTablesUsingRegex($htmlContent);
   if (getType($tableValues) === 'string') {
-    return "Tabella `OGGETTI DI PESO SUPERIORE O UGUALE A 3 KG MOVIMENTATI MANUALMENTE NELL'ARCO DELLA GIORNATA LAVORATIVA`: {$tableValues}";
+    return "La raccolta dei dati non ha avuto successo: Tabella `OGGETTI DI PESO SUPERIORE O UGUALE A 3 KG MOVIMENTATI MANUALMENTE NELL'ARCO DELLA GIORNATA LAVORATIVA`: {$tableValues}";
   }
   $maxWeight = getMaxWeightFromTable($tableValues);
 
@@ -338,22 +338,22 @@ function generateResult($htmlContent, $docId) {
   }
   
   if (in_array('SELEZIONA', $fifteenResponsesBC)) {
-    return 'Fino alla 15: Compilare tutte le risposte prima di procedere';
+    return 'Si prega di compilare tutto il file prima di sottoporlo al controllo.';
   }
 
   $lastThreeResponsesBC = array_slice($responsesBeforeCalculations, -3);
   if (in_array('SELEZIONA', $lastThreeResponsesBC)) {
-    return 'Dalla 16 alla fine: Compilare tutte le risposte prima di procedere';
+    return 'Si prega di compilare tutto il file prima di sottoporlo al controllo.';
   }
 
   $weightConstant = extractValuesFromTablesUsingRegex($htmlContent, 3);
   if (getType($weightConstant) === 'string') {
-    return "Tabella `COSTANTE DI PESO`: {$weightConstant}";
+    return "La raccolta dei dati non ha avuto successo: Tabella `COSTANTE DI PESO`: {$weightConstant}";
   }
   
   $lastSevenResponses = array_slice(extractFirstStructureResponsesUsingRegex($htmlContent, 9), -7);
   if (in_array('SELEZIONA', $lastSevenResponses)) {
-    return 'Dalla 16 alla fine: Compilare tutte le risposte prima di procedere';
+    return 'Si prega di compilare tutto il file prima di sottoporlo al controllo.';
   }
 
   $descriptions = [
@@ -423,7 +423,7 @@ function generateResult($htmlContent, $docId) {
   
   $frequency = extractValuesFromTablesUsingRegex($htmlContent, 4);
   if (getType($frequency) === 'string') {
-    return "Tabella `FREQUENZA DI SOLLEVAMENTO`: {$frequency}";
+    return "La raccolta dei dati non ha avuto successo: Tabella `FREQUENZA DI SOLLEVAMENTO`: {$frequency}";
   }
 
   // CP x A x B x C x D x E x F x G x H
@@ -470,6 +470,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($docId) {
       $_SESSION['docId'] = $docId;
       $docUrl = "https://docs.google.com/document/d/$docId";
+      echo json_encode(['docId' => $docId, 'docUrl' => $docUrl]);
       exit;
     } else {
       echo json_encode(['error' => 'Failed to create document.']);
@@ -500,7 +501,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <div id="loading">
       <img src="assets/loading.gif" alt="Loading...">
     </div>
-    <button id="check-results-btn" class="btn btn-primary" onclick="checkResults()">Controlla i risultati</button>
+    <button id="check-results-btn" class="btn btn-primary" onclick="checkResultsFromBtn()">Controlla i risultati</button>
     <div class="container mt-5" id="main-content">
       <h1 class="text-center mb-4">Movimento Manuale Carichi (MMC) - Cosa puoi fare</h1>
       
@@ -523,6 +524,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         </div>
         <button type="submit" class="btn btn-secondary">Controlla i Risultati</button>
       </form>
+    </div>
+    <div id='output'>
+      Generazione del documento, attendere. . .
     </div>
   </body>
 </html>
