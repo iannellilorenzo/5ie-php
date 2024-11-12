@@ -1,4 +1,4 @@
-tpsit/mmc-webapp-gpoi/secret.key
-tpsit/mmc-webapp-gpoi/vendor/
-tpsit/mmc-webapp-gpoi/composer.lock
-tpsit/mmc-webapp-gpoi/credentials.json
+gpoi/mmc-webapp/secret.key
+gpoi/mmc-webapp/vendor/
+gpoi/mmc-webapp/composer.lock
+gpoi/mmc-webapp/credentials.json
