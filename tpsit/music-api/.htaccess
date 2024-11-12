@@ -1,0 +1,6 @@
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /tpsit/music-api/
+RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
+</IfModule>
