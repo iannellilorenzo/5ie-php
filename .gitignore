@@ -3,3 +3,4 @@ gpoi/mmc-webapp/vendor/
 gpoi/mmc-webapp/composer.lock
 gpoi/mmc-webapp/credentials.json
 tpsit/music-api/assets/
+.vscode/
