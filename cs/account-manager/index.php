@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Lockr</title>
+    <link rel="icon" href="assets/images/logo_favicon.png" type="image/x-icon">
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
 </head>
@@ -31,8 +32,8 @@
             <p>Manage your accounts efficiently and securely.</p>
             <img src="assets/images/logo_luxury.png" class="img-fluid" alt="Account Manager">
             <div class="mt-4">
-                <a href="signin.php" class="btn btn-primary"><i class="fas fa-sign-in-alt"></i> Sign In</a>
-                <a href="signup.php" class="btn btn-secondary"><i class="fas fa-user-plus"></i> Sign Up</a>
+                <a href="sign_in.php" class="btn btn-primary"><i class="fas fa-sign-in-alt"></i> Sign In</a>
+                <a href="sign_up.php" class="btn btn-secondary"><i class="fas fa-user-plus"></i> Sign Up</a>
             </div>
         </div>
 
@@ -47,13 +48,7 @@
                         </button>
                     </div>
                     <div class="modal-body">
-                        We Use Cookies to Enhance Your Security Experience
-
-To provide you with the best possible experience and to ensure your data stays secure, we use cookies. These cookies help us remember your preferences, improve our site’s performance, and support features like safe account management.
-
-Rest assured, your privacy and security are our top priorities. By continuing to use our site, you’re consenting to our use of cookies. For more information on how we protect your data, please review our [Privacy Policy].
-
-Stay safe, stay secure.
+                        We use cookies to enhance your experience on our website. By continuing to use our site, you accept our use of cookies. For more information, please review our Privacy Policy.
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-primary" @click="acceptCookies">Accept</button>
@@ -76,6 +71,9 @@ Stay safe, stay secure.
                         <a href="#" class="btn btn-outline-dark btn-sm"><i class="fab fa-twitter"></i></a>
                     </div>
                 </div>
+            </div>
+            <div class="text-center p-3 bg-dark text-white">
+                &copy; 2025 Lockr. All rights reserved.
             </div>
         </footer>
     </div>
