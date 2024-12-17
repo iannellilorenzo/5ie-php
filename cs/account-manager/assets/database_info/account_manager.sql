@@ -65,7 +65,7 @@ CREATE TABLE `statuses` (
 --
 
 CREATE TABLE `users` (
-  `email` varchar(50) NOT NULL,
+  `username` varchar(50) NOT NULL,
   `first_name` varchar(35) NOT NULL,
   `last_name` varchar(35) NOT NULL,
   `password_hash` varchar(50) NOT NULL,
