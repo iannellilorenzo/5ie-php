@@ -28,7 +28,7 @@
                                 <a href="#" class="btn btn-link">Forgot Password?</a>
                             </div>
                             <div class="form-group text-center mt-3">
-                                <p>Don't have an account? <a href="signup.php">Sign Up</a></p>
+                                <p>Don't have an account? <a href="sign_up.php">Sign Up</a></p>
                             </div>
                         </form>
                     </div>

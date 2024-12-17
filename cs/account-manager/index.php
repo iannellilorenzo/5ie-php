@@ -18,10 +18,10 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ml-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="signin.php">Sign In</a>
+                        <a class="nav-link" href="sign_in.php">Sign In</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="signup.php">Sign Up</a>
+                        <a class="nav-link" href="sign_up.php">Sign Up</a>
                     </li>
                 </ul>
             </div>

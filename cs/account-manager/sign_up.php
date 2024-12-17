@@ -26,6 +26,9 @@
                             </div>
                             <button type="submit" class="btn btn-primary btn-block">Sign Up</button>
                         </form>
+                        <div class="text-center mt-3">
+                            <a href="sign_in.php">Already have an account? Sign In</a>
+                        </div>
                     </div>
                 </div>
             </div>
