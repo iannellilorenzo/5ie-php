@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 17, 2024 at 10:45 PM
+-- Generation Time: Dec 18, 2024 at 07:15 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -33,7 +33,7 @@ CREATE TABLE `accounts` (
   `email` varchar(60) NOT NULL,
   `password` varchar(60) NOT NULL,
   `description` text NOT NULL,
-  `user_id` varchar(50) NOT NULL
+  `user_reference` varchar(60) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -82,7 +82,8 @@ INSERT INTO `statuses` (`id`, `status`) VALUES
 --
 
 CREATE TABLE `users` (
-  `username` varchar(50) NOT NULL,
+  `email` varchar(60) NOT NULL,
+  `username` varchar(30) NOT NULL,
   `first_name` varchar(35) DEFAULT NULL,
   `last_name` varchar(35) DEFAULT NULL,
   `password_hash` varchar(50) NOT NULL,
@@ -94,14 +95,6 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `users`
---
-
-INSERT INTO `users` (`username`, `first_name`, `last_name`, `password_hash`, `phone_number`, `created_at`, `updated_at`, `status_id`, `role_id`) VALUES
-('Lockr!iannox', NULL, NULL, '$argon2id$v=19$m=65536,t=4,p=1$RVRrYXZHTHouLjl1bnl', '+12 345 678 9012', '2024-12-17 20:36:05', '2024-12-17 20:36:05', 1, 1),
-('Lockr!iannox2', NULL, NULL, '$argon2id$v=19$m=65536,t=4,p=1$Wm5lOS9QWmNGLlNxWi5', '+12 345 678 9012', '2024-12-17 21:22:56', '2024-12-17 21:22:56', 1, 1);
-
---
 -- Indexes for dumped tables
 --
 
@@ -110,7 +103,7 @@ INSERT INTO `users` (`username`, `first_name`, `last_name`, `password_hash`, `ph
 --
 ALTER TABLE `accounts`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `users-accounts` (`user_id`);
+  ADD KEY `user-account` (`user_reference`);
 
 --
 -- Indexes for table `roles`
@@ -128,7 +121,7 @@ ALTER TABLE `statuses`
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
-  ADD PRIMARY KEY (`username`),
+  ADD UNIQUE KEY `email` (`email`),
   ADD KEY `role-user` (`role_id`),
   ADD KEY `status-user` (`status_id`);
 
@@ -162,7 +155,7 @@ ALTER TABLE `statuses`
 -- Constraints for table `accounts`
 --
 ALTER TABLE `accounts`
-  ADD CONSTRAINT `users-accounts` FOREIGN KEY (`user_id`) REFERENCES `users` (`username`);
+  ADD CONSTRAINT `user-account` FOREIGN KEY (`user_reference`) REFERENCES `users` (`email`);
 
 --
 -- Constraints for table `users`
