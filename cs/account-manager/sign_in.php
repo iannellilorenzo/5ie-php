@@ -1,3 +1,47 @@
+<?php
+require_once 'config.php';
+session_start();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['username']) && isset($_POST['password'])) {
+        $username = $_POST['username'];
+        $password = $_POST['password'];
+
+        try {
+            $conn = new PDO("mysql:host=$server_name;dbname=$db_name", $db_username, $db_password);
+            $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+            $stmt = $conn->prepare("SELECT * FROM users WHERE username = :username");
+            $stmt->bindParam(':username', $username);
+            $stmt->execute();
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($user) {
+                if ($user['role_id'] == 1) { // Admin role
+                    header("Location: admin_login_supersecure_mega_strong_invisble_to_the_audience.php?message=" . urlencode("You have been redirected because you are an admin."));
+                    exit();
+                } else if (password_verify($password, $user['password_hash'])) {
+                    $_SESSION['username'] = $user['username'];
+                    header("Location: homepage.php");
+                    exit();
+                } else {
+                    header("Location: sign_in.php?message=" . urlencode("Invalid username or password."));
+                    exit();
+                }
+            } else {
+                header("Location: sign_in.php?message=" . urlencode("Invalid username or password."));
+                exit();
+            }
+        } catch (PDOException $e) {
+            header("Location: sign_in.php?message=" . urlencode("Error: " . $e->getMessage()));
+            exit();
+        }
+    } else {
+        header("Location: sign_in.php?message=" . urlencode("Please provide both username and password."));
+        exit();
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +50,7 @@
     <title>Login Page</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link rel="icon" href="assets/images/logo_favicon.png" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
     <div class="container">
@@ -14,8 +59,12 @@
                 <div class="card">
                     <div class="card-body">
                         <h3 class="card-title text-center">Login</h3>
-                        <form action="auth.php" method="post">
-                            <input type="hidden" name="action" value="signin">
+                        <?php if (isset($_GET['message'])): ?>
+                            <div class="alert alert-info">
+                                <?php echo htmlspecialchars($_GET['message']); ?>
+                            </div>
+                        <?php endif; ?>
+                        <form action="sign_in.php" method="post">
                             <div class="form-group">
                                 <label for="username">Username</label>
                                 <input type="text" class="form-control" id="username" name="username" placeholder="Enter username" required>
@@ -32,13 +81,10 @@
                                 </div>
                             </div>
                             <button type="submit" class="btn btn-primary btn-block">Login</button>
-                            <div class="form-group text-center mt-3">
-                                <a href="#" class="btn btn-link">Forgot Password?</a>
-                            </div>
-                            <div class="form-group text-center mt-3">
-                                <p>Don't have an account? <a href="sign_up.php">Sign Up</a></p>
-                            </div>
                         </form>
+                        <div class="text-center mt-3">
+                            <a href="sign_up.php">Don't have an account? Sign Up</a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -46,17 +92,12 @@
     </div>
     <script>
         document.getElementById('togglePassword').addEventListener('click', function () {
-            var passwordField = document.getElementById('password');
-            var passwordFieldType = passwordField.getAttribute('type');
-            if (passwordFieldType === 'password') {
-                passwordField.setAttribute('type', 'text');
-                this.innerHTML = '<i class="fas fa-eye-slash"></i>';
-            } else {
-                passwordField.setAttribute('type', 'password');
-                this.innerHTML = '<i class="fas fa-eye"></i>';
-            }
+            const passwordField = document.getElementById('password');
+            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordField.setAttribute('type', type);
+            this.querySelector('i').classList.toggle('fa-eye');
+            this.querySelector('i').classList.toggle('fa-eye-slash');
         });
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js"></script>
 </body>
 </html>
