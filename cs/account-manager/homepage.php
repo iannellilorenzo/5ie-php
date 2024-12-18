@@ -40,8 +40,8 @@ if ($account_age > 30) {
     $welcome_message = "We're happy you chose us, $username!";
 }
 
-// Determine the navbar brand class
 $navbar_brand_class = $role_id == 1 ? 'navbar-brand-admin' : 'navbar-brand';
+$logo_src = $role_id == 1 ? 'assets/images/logo_favicon_luxury.png' : 'assets/images/logo_favicon.png';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -72,7 +72,7 @@ $navbar_brand_class = $role_id == 1 ? 'navbar-brand-admin' : 'navbar-brand';
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <a class="<?php echo $navbar_brand_class; ?>" href="#">
-            <img src="assets/images/logo_favicon.png" width="30" height="30" class="d-inline-block align-top" alt="">
+            <img src="<?php echo $logo_src; ?>" width="30" height="30" class="d-inline-block align-top" alt="">
             <strong>Lo</strong>ckr
         </a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
