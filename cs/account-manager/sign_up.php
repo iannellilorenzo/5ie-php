@@ -2,25 +2,22 @@
 require_once 'config.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['username']) && isset($_POST['password']) && isset($_POST['phone_number'])) {
+    if (isset($_POST['username']) && isset($_POST['password']) && isset($_POST['phone_number']) && isset($_POST['email'])) {
         $username = $_POST['username'];
         $password = password_hash($_POST['password'], PASSWORD_ARGON2ID);
         $phone_number = $_POST['phone_number'];
+        $email = $_POST['email'];
         $first_name = isset($_POST['first_name']) ? $_POST['first_name'] : null;
         $last_name = isset($_POST['last_name']) ? $_POST['last_name'] : null;
         $status_id = 1; // Active status
-
-        if (strpos($username, 'Lockr!') === 0) {
-            $role_id = 1; // Admin role
-        } else {
-            $role_id = 2; // User role
-        }
+        $role_id = 2; // User role
 
         try {
-            $conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
+            $conn = new PDO("mysql:host=$server_name;dbname=$db_name", $db_username, $db_password);
             $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-            $stmt = $conn->prepare("INSERT INTO users (username, first_name, last_name, password_hash, phone_number, status_id, role_id) VALUES (:username, :first_name, :last_name, :password_hash, :phone_number, :status_id, :role_id)");
+            $stmt = $conn->prepare("INSERT INTO users (email, username, first_name, last_name, password_hash, phone_number, status_id, role_id) VALUES (:email, :username, :first_name, :last_name, :password_hash, :phone_number, :status_id, :role_id)");
+            $stmt->bindParam(':email', $email);
             $stmt->bindParam(':username', $username);
             $stmt->bindParam(':first_name', $first_name);
             $stmt->bindParam(':last_name', $last_name);
@@ -30,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bindParam(':role_id', $role_id);
 
             if ($stmt->execute()) {
-                header("Location: homepage.php?message=" . urlencode("User created successfully!"));
+                header("Location: homepage.php");
                 exit();
             } else {
                 header("Location: sign_up.php?message=" . urlencode("Error creating user."));
@@ -72,6 +69,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="form-group">
                                 <label for="username">Username</label>
                                 <input type="text" class="form-control" id="username" name="username" placeholder="Enter username" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" placeholder="Enter email" required>
                             </div>
                             <div class="form-group">
                                 <label for="password">Password</label>
