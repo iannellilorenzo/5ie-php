@@ -129,7 +129,7 @@ $logo_src = $role_id == 1 ? 'assets/images/logo_favicon_luxury.png' : 'assets/im
     <!-- Sticky Footer -->
     <footer class="footer mt-auto py-3 bg-light">
         <div class="container text-center">
-            <span class="text-muted">© 2023 Lockr. <a href="policy.php">Privacy Policy</a> | <a href="terms.php">Terms of Service</a></span>
+            <span class="text-muted">© 2025 Lockr. <a href="policy.php">Privacy Policy</a> | <a href="terms.php">Terms of Service</a></span>
         </div>
     </footer>
 

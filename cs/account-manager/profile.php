@@ -153,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Sticky Footer -->
     <footer class="footer mt-auto py-3 bg-light">
         <div class="container text-center">
-            <span class="text-muted">© 2023 Lockr. <a href="policy.php">Privacy Policy</a> | <a href="terms.php">Terms of Service</a></span>
+            <span class="text-muted">© 2025 Lockr. <a href="policy.php">Privacy Policy</a> | <a href="terms.php">Terms of Service</a></span>
         </div>
     </footer>
 
