@@ -9,62 +9,54 @@ if (!isset($_SESSION['username'])) {
 
 $username = $_SESSION['username'];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $new_username = $_POST['username'];
-    $new_email = $_POST['email'];
-    $new_password = $_POST['password'];
-    $confirm_password = $_POST['confirm_password'];
-    $new_phone_number = $_POST['phone_number'];
-    $new_first_name = $_POST['first_name'];
-    $new_last_name = $_POST['last_name'];
+try {
+    $conn = new PDO("mysql:host=$server_name;dbname=$db_name", $db_username, $db_password);
+    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    if ($new_password !== $confirm_password) {
+    $stmt = $conn->prepare("SELECT * FROM users WHERE username = :username");
+    $stmt->bindParam(':username', $username);
+    $stmt->execute();
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    $email = $user['email'];
+    $phone_number = $user['phone_number'];
+    $first_name = $user['first_name'];
+    $last_name = $user['last_name'];
+} catch (PDOException $e) {
+    $message = "Error: " . $e->getMessage();
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = $_POST['email'];
+    $password = $_POST['password'];
+    $confirm_password = $_POST['confirm_password'];
+    $phone_number = $_POST['phone_number'];
+    $first_name = $_POST['first_name'];
+    $last_name = $_POST['last_name'];
+
+    if ($password !== $confirm_password) {
         $message = "Passwords do not match.";
     } else {
         try {
-            $conn = new PDO("mysql:host=$server_name;dbname=$db_name", $db_username, $db_password);
-            $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-            if (!empty($new_password)) {
-                $password_hash = password_hash($new_password, PASSWORD_ARGON2ID);
-                $stmt = $conn->prepare("UPDATE users SET username = :username, email = :email, password_hash = :password_hash, phone_number = :phone_number, first_name = :first_name, last_name = :last_name WHERE username = :current_username");
+            if (!empty($password)) {
+                $password_hash = password_hash($password, PASSWORD_ARGON2ID);
+                $stmt = $conn->prepare("UPDATE users SET email = :email, password_hash = :password_hash, phone_number = :phone_number, first_name = :first_name, last_name = :last_name WHERE username = :username");
                 $stmt->bindParam(':password_hash', $password_hash);
             } else {
-                $stmt = $conn->prepare("UPDATE users SET username = :username, email = :email, phone_number = :phone_number, first_name = :first_name, last_name = :last_name WHERE username = :current_username");
+                $stmt = $conn->prepare("UPDATE users SET email = :email, phone_number = :phone_number, first_name = :first_name, last_name = :last_name WHERE username = :username");
             }
 
-            $stmt->bindParam(':username', $new_username);
-            $stmt->bindParam(':email', $new_email);
-            $stmt->bindParam(':phone_number', $new_phone_number);
-            $stmt->bindParam(':first_name', $new_first_name);
-            $stmt->bindParam(':last_name', $new_last_name);
-            $stmt->bindParam(':current_username', $username);
+            $stmt->bindParam(':email', $email);
+            $stmt->bindParam(':phone_number', $phone_number);
+            $stmt->bindParam(':first_name', $first_name);
+            $stmt->bindParam(':last_name', $last_name);
+            $stmt->bindParam(':username', $username);
             $stmt->execute();
 
-            $_SESSION['username'] = $new_username;
-            $username = $new_username;
             $message = "Profile updated successfully.";
         } catch (PDOException $e) {
             $message = "Error: " . $e->getMessage();
         }
-    }
-} else {
-    try {
-        $conn = new PDO("mysql:host=$server_name;dbname=$db_name", $db_username, $db_password);
-        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        $stmt = $conn->prepare("SELECT * FROM users WHERE username = :username");
-        $stmt->bindParam(':username', $username);
-        $stmt->execute();
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        $new_username = $user['username'];
-        $new_email = $user['email'];
-        $new_phone_number = $user['phone_number'];
-        $new_first_name = $user['first_name'];
-        $new_last_name = $user['last_name'];
-    } catch (PDOException $e) {
-        $message = "Error: " . $e->getMessage();
     }
 }
 ?>
@@ -77,6 +69,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link rel="icon" href="assets/images/logo_favicon.png" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        .container {
+            margin-top: 50px;
+        }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
@@ -97,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </nav>
 
     <div class="container">
-        <div class="row justify-content-center align-items-center" style="height:100vh">
+        <div class="row justify-content-center align-items-center" style="height:80vh">
             <div class="col-6">
                 <div class="card">
                     <div class="card-body">
@@ -110,23 +115,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <form action="profile.php" method="post">
                             <div class="form-group">
                                 <label for="username">Username</label>
-                                <input type="text" class="form-control" id="username" name="username" value="<?php echo htmlspecialchars($new_username); ?>" required>
+                                <input type="text" class="form-control" id="username" name="username" value="<?php echo htmlspecialchars($username); ?>" readonly>
                             </div>
                             <div class="form-group">
                                 <label for="email">Email address</label>
-                                <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($new_email); ?>" required>
+                                <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($email); ?>" required>
                             </div>
                             <div class="form-group">
                                 <label for="phone_number">Phone Number</label>
-                                <input type="text" class="form-control" id="phone_number" name="phone_number" value="<?php echo htmlspecialchars($new_phone_number); ?>" placeholder="+1 123 456 7890" pattern="^\+?(\d{1,3})?[-.\s]?(\(?\d{1,4}\)?)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$" required>
+                                <input type="text" class="form-control" id="phone_number" name="phone_number" value="<?php echo htmlspecialchars($phone_number); ?>" placeholder="+1 123 456 7890" pattern="^\+?(\d{1,3})?[-.\s]?(\(?\d{1,4}\)?)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$" required>
                             </div>
                             <div class="form-group">
                                 <label for="first_name">First Name</label>
-                                <input type="text" class="form-control" id="first_name" name="first_name" value="<?php echo htmlspecialchars($new_first_name); ?>" placeholder="Enter your first name here" required>
+                                <input type="text" class="form-control" id="first_name" name="first_name" value="<?php echo htmlspecialchars($first_name); ?>" required>
                             </div>
                             <div class="form-group">
                                 <label for="last_name">Last Name</label>
-                                <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo htmlspecialchars($new_last_name); ?>" placeholder="Enter your last name here" required>
+                                <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo htmlspecialchars($last_name); ?>" required>
                             </div>
                             <button type="button" class="btn btn-secondary btn-block mb-3" id="changePasswordButton">Change Password</button>
                             <div class="form-group" id="passwordGroup" style="display: none;">
@@ -144,6 +149,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </div>
+
+    <!-- Sticky Footer -->
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">© 2023 Lockr. <a href="policy.php">Privacy Policy</a> | <a href="terms.php">Terms of Service</a></span>
+        </div>
+    </footer>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
