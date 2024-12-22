@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 18, 2024 at 10:41 PM
+-- Generation Time: Dec 22, 2024 at 11:24 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -90,6 +90,7 @@ CREATE TABLE `users` (
   `phone_number` varchar(20) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `secret_key` int(6) NOT NULL,
   `status_id` int(11) NOT NULL,
   `role_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -98,9 +99,9 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`email`, `username`, `first_name`, `last_name`, `password_hash`, `phone_number`, `created_at`, `updated_at`, `status_id`, `role_id`) VALUES
-('iannelli.lorenzo2006@gmail.com', 'iannelli2', NULL, NULL, '$argon2id$v=19$m=65536,t=4,p=1$cXR6eWFHUE5LT3lYckxVMw$Glk9wOjsqWCWRnHBcRhku//eqRfwldh9IvHQuVRid+Q', '+12 345 678 9012', '2024-12-18 21:11:29', '2024-12-18 21:11:29', 1, 2),
-('iannelli@lockr.com', 'iannelli', NULL, NULL, '$argon2id$v=19$m=65536,t=4,p=1$clc1cE40U2p5T0tFWnp1cw$mVxlGCE82Q480Nt8+2nNIkr9SmYfcJWjnyCoHP9gXsk', '+39 123 456 7890', '2024-12-18 18:49:23', '2024-12-18 18:49:23', 1, 1);
+INSERT INTO `users` (`email`, `username`, `first_name`, `last_name`, `password_hash`, `phone_number`, `created_at`, `updated_at`, `secret_key`, `status_id`, `role_id`) VALUES
+('iannelli.lorenzo2006@gmail.com', 'iannelli2', 'lorenzo', 'iannelli', '$argon2id$v=19$m=65536,t=4,p=1$cXR6eWFHUE5LT3lYckxVMw$Glk9wOjsqWCWRnHBcRhku//eqRfwldh9IvHQuVRid+Q', '+12 345 678 9012', '2024-12-18 21:11:29', '2024-12-18 21:11:29', 0, 1, 2),
+('iannelli@lockr.com', 'iannelli', NULL, NULL, '$argon2id$v=19$m=65536,t=4,p=1$clc1cE40U2p5T0tFWnp1cw$mVxlGCE82Q480Nt8+2nNIkr9SmYfcJWjnyCoHP9gXsk', '+39 123 456 7890', '2024-12-18 18:49:23', '2024-12-18 18:49:23', 0, 1, 1);
 
 --
 -- Indexes for dumped tables
