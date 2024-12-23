@@ -10,7 +10,7 @@ if (isset($_SESSION['username'])) {
         $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         // Clear the token from the database
-        $stmt = $conn->prepare("UPDATE users SET token = NULL WHERE username = :username");
+        $stmt = $conn->prepare("UPDATE users SET session_token = NULL WHERE username = :username");
         $stmt->bindParam(':username', $username);
         $stmt->execute();
     } catch (PDOException $e) {

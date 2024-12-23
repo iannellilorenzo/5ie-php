@@ -25,8 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['username'] = $username;
                     $_SESSION['token'] = $token;
 
-                    $stmt = $conn->prepare("UPDATE users SET token = :token WHERE username = :username");
-                    $stmt->bindParam(':token', $token);
+                    $stmt = $conn->prepare("UPDATE users SET session_token = :session_token WHERE username = :username");
+                    $stmt->bindParam(':session_token', $token);
                     $stmt->bindParam(':username', $username);
                     $stmt->execute();
 
