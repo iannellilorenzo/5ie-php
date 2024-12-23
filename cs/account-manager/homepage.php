@@ -2,17 +2,36 @@
 session_start();
 require_once 'config.php';
 
-if (!isset($_SESSION['username']) && !isset($_COOKIE['username'])) {
+if (!isset($_SESSION['username']) && !isset($_COOKIE['auth_token'])) {
     header("Location: sign_in.php");
     exit();
 }
 
-$username = isset($_SESSION['username']) ? $_SESSION['username'] : $_COOKIE['username'];
+$username = isset($_SESSION['username']) ? $_SESSION['username'] : null;
+
+if (!$username && isset($_COOKIE['auth_token'])) {
+    try {
+        $conn = new PDO("mysql:host=$server_name;dbname=$db_name", $db_username, $db_password);
+        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        $stmt = $conn->prepare("SELECT username FROM users WHERE token = :token");
+        $stmt->bindParam(':token', $_COOKIE['auth_token']);
+        $stmt->execute();
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($user) {
+            $username = $user['username'];
+            $_SESSION['username'] = $username;
+        } else {
+            header("Location: sign_in.php");
+            exit();
+        }
+    } catch (PDOException $e) {
+        $message = "Error: " . $e->getMessage();
+    }
+}
 
 try {
-    $conn = new PDO("mysql:host=$server_name;dbname=$db_name", $db_username, $db_password);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
     $stmt = $conn->prepare("SELECT secret_key FROM users WHERE username = :username");
     $stmt->bindParam(':username', $username);
     $stmt->execute();

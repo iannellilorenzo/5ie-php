@@ -21,7 +21,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header("Location: admin_login_supersecure_mega_strong_invisble_to_the_audience.php?message=" . urlencode("You have been redirected because you are an admin."));
                     exit();
                 } else if (password_verify($password, $user['password_hash'])) {
-                    $_SESSION['username'] = $user['username'];
+                    $token = bin2hex(random_bytes(32));
+                    $_SESSION['username'] = $username;
+                    $_SESSION['token'] = $token;
+
+                    $stmt = $conn->prepare("UPDATE users SET token = :token WHERE username = :username");
+                    $stmt->bindParam(':token', $token);
+                    $stmt->bindParam(':username', $username);
+                    $stmt->execute();
+
+                    setcookie("auth_token", $token, time() + (86400 * 30), "/"); // 86400 = 1 day
+
                     header("Location: homepage.php");
                     exit();
                 } else {
@@ -47,10 +57,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Login Page</title>
+    <title>Sign In</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link rel="icon" href="assets/images/logo_favicon.png" type="image/x-icon">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
     <div class="container">
@@ -58,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="col-4">
                 <div class="card">
                     <div class="card-body">
-                        <h3 class="card-title text-center">Login</h3>
+                        <h3 class="card-title text-center">Sign In</h3>
                         <?php if (isset($_GET['message'])): ?>
                             <div class="alert alert-info">
                                 <?php echo htmlspecialchars($_GET['message']); ?>
@@ -71,33 +80,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                             <div class="form-group">
                                 <label for="password">Password</label>
-                                <div class="input-group">
-                                    <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
-                                    <div class="input-group-append">
-                                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    </div>
-                                </div>
+                                <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
                             </div>
-                            <button type="submit" class="btn btn-primary btn-block">Login</button>
+                            <button type="submit" class="btn btn-primary btn-block">Sign In</button>
                         </form>
-                        <div class="text-center mt-3">
-                            <a href="sign_up.php">Don't have an account? Sign Up</a>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <script>
-        document.getElementById('togglePassword').addEventListener('click', function () {
-            const passwordField = document.getElementById('password');
-            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordField.setAttribute('type', type);
-            this.querySelector('i').classList.toggle('fa-eye');
-            this.querySelector('i').classList.toggle('fa-eye-slash');
-        });
-    </script>
 </body>
 </html>

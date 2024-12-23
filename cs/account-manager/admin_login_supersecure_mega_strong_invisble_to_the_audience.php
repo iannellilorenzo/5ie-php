@@ -17,8 +17,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($user && password_verify($password, $user['password_hash'])) {
+                $token = bin2hex(random_bytes(32));
                 $_SESSION['username'] = $user['username'];
-                setcookie("username", $user['username'], time() + (86400 * 30), "/"); // 86400 = 1 day
+                $_SESSION['token'] = $token;
+
+                $stmt = $conn->prepare("UPDATE users SET token = :token WHERE username = :username");
+                $stmt->bindParam(':token', $token);
+                $stmt->bindParam(':username', $username);
+                $stmt->execute();
+
+                setcookie("auth_token", $token, time() + (86400 * 30), "/"); // 86400 = 1 day
+
                 header("Location: homepage.php");
                 exit();
             } else {
