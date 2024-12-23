@@ -18,21 +18,25 @@ try {
     $stmt->execute();
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    $email = $user['email'];
-    $phone_number = $user['phone_number'];
-    $first_name = $user['first_name'];
-    $last_name = $user['last_name'];
+    if ($user) {
+        $email = htmlspecialchars($user['email']);
+        $phone_number = htmlspecialchars($user['phone_number']);
+        $first_name = htmlspecialchars($user['first_name']);
+        $last_name = htmlspecialchars($user['last_name']);
+    } else {
+        $message = "User not found.";
+    }
 } catch (PDOException $e) {
     $message = "Error: " . $e->getMessage();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = $_POST['email'];
+    $email = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
     $password = $_POST['password'];
     $confirm_password = $_POST['confirm_password'];
-    $phone_number = $_POST['phone_number'];
-    $first_name = $_POST['first_name'];
-    $last_name = $_POST['last_name'];
+    $phone_number = htmlspecialchars($_POST['phone_number']);
+    $first_name = htmlspecialchars($_POST['first_name']);
+    $last_name = htmlspecialchars($_POST['last_name']);
 
     if ($password !== $confirm_password) {
         $message = "Passwords do not match.";
@@ -73,13 +77,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .container {
             margin-top: 50px;
         }
-        .footer {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-        }
         .form-group {
             margin-bottom: 1.5rem;
+        }
+        .card {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #004085;
         }
     </style>
 </head>
@@ -149,13 +159,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </div>
-
-    <!-- Sticky Footer -->
-    <footer class="footer mt-auto py-3 bg-light">
-        <div class="container text-center">
-            <span class="text-muted">© 2025 Lockr. <a href="policy.php">Privacy Policy</a> | <a href="terms.php">Terms of Service</a></span>
-        </div>
-    </footer>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>

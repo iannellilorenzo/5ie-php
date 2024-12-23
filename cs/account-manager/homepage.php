@@ -1,47 +1,50 @@
 <?php
-require_once 'config.php';
 session_start();
+require_once 'config.php';
 
-if (!isset($_SESSION['username'])) {
+if (!isset($_SESSION['username']) && !isset($_COOKIE['username'])) {
     header("Location: sign_in.php");
     exit();
 }
 
-$username = $_SESSION['username'];
+$username = isset($_SESSION['username']) ? $_SESSION['username'] : $_COOKIE['username'];
 
 try {
     $conn = new PDO("mysql:host=$server_name;dbname=$db_name", $db_username, $db_password);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    $stmt = $conn->prepare("SELECT created_at, role_id FROM users WHERE username = :username");
+    $stmt = $conn->prepare("SELECT secret_key FROM users WHERE username = :username");
     $stmt->bindParam(':username', $username);
     $stmt->execute();
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($user) {
-        $account_creation_date = $user['created_at'];
-        $role_id = $user['role_id'];
+    if ($user && empty($user['secret_key'])) {
+        $showSecretKeyForm = true;
     } else {
-        header("Location: sign_in.php?message=" . urlencode("User not found."));
-        exit();
+        $showSecretKeyForm = false;
     }
 } catch (PDOException $e) {
-    header("Location: sign_in.php?message=" . urlencode("Error: " . $e->getMessage()));
-    exit();
+    $message = "Error: " . $e->getMessage();
 }
 
-// Calculate the account age
-$account_age = (new DateTime())->diff(new DateTime($account_creation_date))->days;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['secret_key'])) {
+    $secret_key = implode('', array_map('htmlspecialchars', $_POST['secret_key']));
 
-// Determine the welcome message
-if ($account_age > 30) {
-    $welcome_message = "Welcome back, $username!";
-} else {
-    $welcome_message = "We're happy you chose us, $username!";
+    if (preg_match('/^\d{6}$/', $secret_key)) {
+        try {
+            $stmt = $conn->prepare("UPDATE users SET secret_key = :secret_key WHERE username = :username");
+            $stmt->bindParam(':secret_key', $secret_key);
+            $stmt->bindParam(':username', $username);
+            $stmt->execute();
+
+            $showSecretKeyForm = false;
+        } catch (PDOException $e) {
+            $message = "Error: " . $e->getMessage();
+        }
+    } else {
+        $message = "Secret key must be a 6-digit PIN.";
+    }
 }
-
-$navbar_brand_class = $role_id == 1 ? 'navbar-brand-admin' : 'navbar-brand';
-$logo_src = $role_id == 1 ? 'assets/images/logo_favicon_luxury.png' : 'assets/images/logo_favicon.png';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -51,30 +54,25 @@ $logo_src = $role_id == 1 ? 'assets/images/logo_favicon_luxury.png' : 'assets/im
     <title>Homepage</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link rel="icon" href="assets/images/logo_favicon.png" type="image/x-icon">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        .welcome-message {
-            font-size: 2rem;
-            font-family: 'Arial', sans-serif;
-            font-weight: bold;
+        .otp-input {
+            width: 2rem;
+            height: 2rem;
+            text-align: center;
+            font-size: 1.5rem;
+            margin: 0.2rem;
         }
-        .footer {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
+        .container {
+            padding-bottom: 2rem;
         }
-        .navbar-brand-admin {
-            color: gold !important;
+        .greeting {
+            padding-bottom: 1rem;
         }
     </style>
 </head>
 <body>
-    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <a class="<?php echo $navbar_brand_class; ?>" href="#">
-            <img src="<?php echo $logo_src; ?>" width="30" height="30" class="d-inline-block align-top" alt="">
-            <strong>Lo</strong>ckr
-        </a>
+        <a class="navbar-brand" href="#">Lockr</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -83,58 +81,95 @@ $logo_src = $role_id == 1 ? 'assets/images/logo_favicon_luxury.png' : 'assets/im
                 <li class="nav-item">
                     <a class="nav-link" href="profile.php">Profile</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="logout.php">Logout</a>
+                </li>
             </ul>
         </div>
     </nav>
 
-    <div class="container mt-5">
-        <div class="row">
-            <div class="col-12">
-                <div class="alert alert-info text-center welcome-message">
-                    <?php echo $welcome_message; ?>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">View All Accounts</h5>
-                        <p class="card-text">See a list of all user accounts.</p>
-                        <a href="view_accounts.php" class="btn btn-primary">View Accounts</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Add New Account</h5>
-                        <p class="card-text">Create a new user account.</p>
-                        <a href="sign_up.php" class="btn btn-primary">Add Account</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Other Service</h5>
-                        <p class="card-text">Description of another service.</p>
-                        <a href="#" class="btn btn-primary">Go to Service</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <div class="container">
+        <?php if (!$showSecretKeyForm): ?>
+            <h2 class="text-center mt-4 greeting">Welcome, <?php echo htmlspecialchars($username); ?>!</h2>
+        <?php endif; ?>
 
-    <!-- Sticky Footer -->
-    <footer class="footer mt-auto py-3 bg-light">
-        <div class="container text-center">
-            <span class="text-muted">© 2025 Lockr. <a href="policy.php">Privacy Policy</a> | <a href="terms.php">Terms of Service</a></span>
-        </div>
-    </footer>
+        <?php if (isset($message)): ?>
+            <div class="alert alert-info">
+                <?php echo htmlspecialchars($message); ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($showSecretKeyForm): ?>
+            <div class="row justify-content-center align-items-center" style="height:80vh">
+                <div class="col-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h3 class="card-title text-center">Complete your Secret Key Setup</h3>
+                            <p class="text-center">This secret key will be used to encrypt your passwords, don't forget it. <br> Please enter a 6-digit PIN.</p>
+                            <form action="homepage.php" method="post" id="secretKeyForm">
+                                <div class="form-group text-center">
+                                    <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
+                                    <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
+                                    <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
+                                    <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
+                                    <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
+                                    <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-block">Set Secret Key</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php else: ?>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">View All Accounts</h5>
+                            <p class="card-text">See a list of all user accounts.</p>
+                            <a href="view_accounts.php" class="btn btn-primary">View Accounts</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Add New Account</h5>
+                            <p class="card-text">Let us store your account.</p>
+                            <a href="sign_up.php" class="btn btn-primary">Add Account</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Other Service</h5>
+                            <p class="card-text">Lorem ipsum dolor sit amet.</p>
+                            <a href="#" class="btn btn-primary">Go to Service</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        document.querySelectorAll('.otp-input').forEach((input, index, inputs) => {
+            input.addEventListener('input', () => {
+                if (input.value.length === 1 && index < inputs.length - 1) {
+                    inputs[index + 1].focus();
+                }
+            });
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && input.value.length === 0 && index > 0) {
+                    inputs[index - 1].focus();
+                }
+            });
+        });
+    </script>
 </body>
 </html>
