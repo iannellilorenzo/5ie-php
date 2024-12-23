@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $conn = new PDO("mysql:host=$server_name;dbname=$db_name", $db_username, $db_password);
                 $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-                $stmt = $conn->prepare("INSERT INTO users (email, username, first_name, last_name, password_hash, phone_number, status_id, role_id, token) VALUES (:email, :username, :first_name, :last_name, :password_hash, :phone_number, :status_id, :role_id, :session_token)");
+                $stmt = $conn->prepare("INSERT INTO users (email, username, first_name, last_name, password_hash, phone_number, status_id, role_id, session_token) VALUES (:email, :username, :first_name, :last_name, :password_hash, :phone_number, :status_id, :role_id, :session_token)");
                 $stmt->bindParam(':email', $email);
                 $stmt->bindParam(':username', $username);
                 $stmt->bindParam(':first_name', $first_name);
