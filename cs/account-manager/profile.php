@@ -2,19 +2,21 @@
 session_start();
 require_once 'config.php';
 
-if (!isset($_SESSION['username'])) {
+if (!isset($_SESSION['username']) || !isset($_SESSION['token'])) {
     header("Location: sign_in.php");
     exit();
 }
 
 $username = $_SESSION['username'];
+$session_token = $_SESSION['token'];
 
 try {
     $conn = new PDO("mysql:host=$server_name;dbname=$db_name", $db_username, $db_password);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    $stmt = $conn->prepare("SELECT * FROM users WHERE username = :username");
+    $stmt = $conn->prepare("SELECT * FROM users WHERE username = :username AND session_token = :session_token");
     $stmt->bindParam(':username', $username);
+    $stmt->bindParam(':session_token', $session_token);
     $stmt->execute();
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
