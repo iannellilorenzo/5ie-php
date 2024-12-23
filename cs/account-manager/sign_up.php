@@ -33,15 +33,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $phone_number = $_POST['phone_number'];
             $first_name = isset($_POST['first_name']) ? $_POST['first_name'] : null;
             $last_name = isset($_POST['last_name']) ? $_POST['last_name'] : null;
-            $status_id = 1; // Active status
+            $status_id = 2; // Inactive status until email is verified
             $role_id = 2; // User role
-            $token = bin2hex(random_bytes(32));
+            $session_token = bin2hex(random_bytes(32)); // Session token
+            $verification_token = bin2hex(random_bytes(32)); // Email verification token
+            $hashed_verification_token = password_hash($verification_token, PASSWORD_ARGON2ID); // Hash the verification token
 
             try {
                 $conn = new PDO("mysql:host=$server_name;dbname=$db_name", $db_username, $db_password);
                 $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-                $stmt = $conn->prepare("INSERT INTO users (email, username, first_name, last_name, password_hash, phone_number, status_id, role_id, session_token) VALUES (:email, :username, :first_name, :last_name, :password_hash, :phone_number, :status_id, :role_id, :session_token)");
+                $stmt = $conn->prepare("INSERT INTO users (email, username, first_name, last_name, password_hash, phone_number, status_id, role_id, session_token, verification_token) VALUES (:email, :username, :first_name, :last_name, :password_hash, :phone_number, :status_id, :role_id, :session_token, :verification_token)");
                 $stmt->bindParam(':email', $email);
                 $stmt->bindParam(':username', $username);
                 $stmt->bindParam(':first_name', $first_name);
@@ -50,13 +52,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->bindParam(':phone_number', $phone_number);
                 $stmt->bindParam(':status_id', $status_id);
                 $stmt->bindParam(':role_id', $role_id);
-                $stmt->bindParam(':session_token', $token);
+                $stmt->bindParam(':session_token', $session_token);
+                $stmt->bindParam(':verification_token', $hashed_verification_token);
                 $stmt->execute();
 
                 $_SESSION['username'] = $username;
-                $_SESSION['token'] = $token;
+                $_SESSION['token'] = $session_token;
 
-                setcookie("auth_token", $token, time() + (86400 * 30), "/"); // 86400 = 1 day
+                setcookie("auth_token", $session_token, time() + (86400 * 30), "/"); // 86400 = 1 day
+
+                // Send verification email
+                $verification_link = "http://localhost/5ie-php/cs/account-manager/verify_email.php?token=$verification_token";
+                $subject = "Email Verification - Lockr Account Activation";
+                $message = "Please click the following link to verify your email: $verification_link";
+                $headers = "From: iannelli.lorenzo.studente@itispaleocapa.it";
+
+                mail($email, $subject, $message, $headers);
 
                 header("Location: homepage.php");
                 exit();

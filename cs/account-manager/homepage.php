@@ -14,7 +14,7 @@ try {
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     if (!$username && isset($_COOKIE['auth_token'])) {
-        $stmt = $conn->prepare("SELECT username FROM users WHERE session_token = :session_token");
+        $stmt = $conn->prepare("SELECT username FROM users WHERE session_token = :session_token AND status_id = 1");
         $stmt->bindParam(':session_token', $_COOKIE['auth_token']);
         $stmt->execute();
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -28,7 +28,7 @@ try {
         }
     }
 
-    $stmt = $conn->prepare("SELECT secret_key FROM users WHERE username = :username");
+    $stmt = $conn->prepare("SELECT secret_key FROM users WHERE username = :username AND status_id = 1");
     $stmt->bindParam(':username', $username);
     $stmt->execute();
     $user = $stmt->fetch(PDO::FETCH_ASSOC);

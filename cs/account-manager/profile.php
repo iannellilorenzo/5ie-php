@@ -14,7 +14,7 @@ try {
     $conn = new PDO("mysql:host=$server_name;dbname=$db_name", $db_username, $db_password);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    $stmt = $conn->prepare("SELECT * FROM users WHERE username = :username AND session_token = :session_token");
+    $stmt = $conn->prepare("SELECT * FROM users WHERE username = :username AND session_token = :session_token AND status_id = 1");
     $stmt->bindParam(':username', $username);
     $stmt->bindParam(':session_token', $session_token);
     $stmt->execute();
@@ -26,7 +26,7 @@ try {
         $first_name = htmlspecialchars($user['first_name']);
         $last_name = htmlspecialchars($user['last_name']);
     } else {
-        $message = "User not found.";
+        $message = "User not found or unverified.";
     }
 } catch (PDOException $e) {
     $message = "Error: " . $e->getMessage();

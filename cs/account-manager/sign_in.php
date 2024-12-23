@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $conn = new PDO("mysql:host=$server_name;dbname=$db_name", $db_username, $db_password);
             $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-            $stmt = $conn->prepare("SELECT * FROM users WHERE username = :username");
+            $stmt = $conn->prepare("SELECT * FROM users WHERE username = :username AND status_id = 1");
             $stmt->bindParam(':username', $username);
             $stmt->execute();
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit();
                 }
             } else {
-                header("Location: sign_in.php?message=" . urlencode("Invalid username or password."));
+                header("Location: sign_in.php?message=" . urlencode("Invalid username, password, or unverified email."));
                 exit();
             }
         } catch (PDOException $e) {
