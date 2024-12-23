@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 22, 2024 at 11:24 PM
+-- Generation Time: Dec 23, 2024 at 02:25 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -90,7 +90,8 @@ CREATE TABLE `users` (
   `phone_number` varchar(20) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `secret_key` int(6) NOT NULL,
+  `secret_key` int(6) DEFAULT NULL,
+  `token` varchar(64) DEFAULT NULL,
   `status_id` int(11) NOT NULL,
   `role_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -99,9 +100,10 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`email`, `username`, `first_name`, `last_name`, `password_hash`, `phone_number`, `created_at`, `updated_at`, `secret_key`, `status_id`, `role_id`) VALUES
-('iannelli.lorenzo2006@gmail.com', 'iannelli2', 'lorenzo', 'iannelli', '$argon2id$v=19$m=65536,t=4,p=1$cXR6eWFHUE5LT3lYckxVMw$Glk9wOjsqWCWRnHBcRhku//eqRfwldh9IvHQuVRid+Q', '+12 345 678 9012', '2024-12-18 21:11:29', '2024-12-18 21:11:29', 0, 1, 2),
-('iannelli@lockr.com', 'iannelli', NULL, NULL, '$argon2id$v=19$m=65536,t=4,p=1$clc1cE40U2p5T0tFWnp1cw$mVxlGCE82Q480Nt8+2nNIkr9SmYfcJWjnyCoHP9gXsk', '+39 123 456 7890', '2024-12-18 18:49:23', '2024-12-18 18:49:23', 0, 1, 1);
+INSERT INTO `users` (`email`, `username`, `first_name`, `last_name`, `password_hash`, `phone_number`, `created_at`, `updated_at`, `secret_key`, `token`, `status_id`, `role_id`) VALUES
+('iannelli.lorenzo2006@gmail.com', 'iannelli2', 'lorenzo', 'iannelli', '$argon2id$v=19$m=65536,t=4,p=1$cXR6eWFHUE5LT3lYckxVMw$Glk9wOjsqWCWRnHBcRhku//eqRfwldh9IvHQuVRid+Q', '+12 345 678 9012', '2024-12-18 21:11:29', '2024-12-18 21:11:29', 123456, NULL, 1, 2),
+('iannelli@lockr.com', 'iannelli', NULL, NULL, '$argon2id$v=19$m=65536,t=4,p=1$clc1cE40U2p5T0tFWnp1cw$mVxlGCE82Q480Nt8+2nNIkr9SmYfcJWjnyCoHP9gXsk', '+39 123 456 7890', '2024-12-18 18:49:23', '2024-12-18 18:49:23', 123456, NULL, 1, 1),
+('user@user.com', 'user', NULL, NULL, '$argon2id$v=19$m=65536,t=4,p=1$d0lwRVAvVEh5TlpkRHY4Vg$8GKXH0Ggnd9HGrAHsC2iS+60/Qxmslm9EEH3ELsyVSI', '+123 456 678 9012', '2024-12-23 01:18:10', '2024-12-23 01:18:10', NULL, '32feae59ee9f78e7f2b9e3893e365b4af086b0d6484a6830942b720596b9a308', 1, 2);
 
 --
 -- Indexes for dumped tables
