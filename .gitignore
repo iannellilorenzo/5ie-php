@@ -4,3 +4,4 @@ gpoi/mmc-webapp/composer.lock
 gpoi/mmc-webapp/credentials.json
 tpsit/music-api/assets/
 .vscode/
+cs/account_manager/cloudflare_keys.key
