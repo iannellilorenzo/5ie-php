@@ -18,19 +18,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($user && password_verify($password, $user['password_hash'])) {
                 $_SESSION['username'] = $user['username'];
+                setcookie("username", $user['username'], time() + (86400 * 30), "/"); // 86400 = 1 day
                 header("Location: homepage.php");
                 exit();
             } else {
-                header("Location: admin_login_supersecure_mega_strong_invisble_to_the_audience.php?message=" . urlencode("Invalid username or password."));
-                exit();
+                $message = "Invalid username or password.";
             }
         } catch (PDOException $e) {
-            header("Location: admin_login_supersecure_mega_strong_invisble_to_the_audience.php?message=" . urlencode("Error: " . $e->getMessage()));
-            exit();
+            $message = "Error: " . $e->getMessage();
         }
     } else {
-        header("Location: admin_login_supersecure_mega_strong_invisble_to_the_audience.php?message=" . urlencode("Please provide both username and password."));
-        exit();
+        $message = "Please provide both username and password.";
     }
 }
 ?>
@@ -51,9 +49,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="card">
                     <div class="card-body">
                         <h3 class="card-title text-center">Admin Login</h3>
-                        <?php if (isset($_GET['message'])): ?>
+                        <?php if (isset($message)): ?>
                             <div class="alert alert-info">
-                                <?php echo htmlspecialchars($_GET['message']); ?>
+                                <?php echo htmlspecialchars($message); ?>
                             </div>
                         <?php endif; ?>
                         <form action="admin_login_supersecure_mega_strong_invisble_to_the_audience.php" method="post">
