@@ -33,7 +33,7 @@ try {
     $stmt->execute();
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($user && empty($user['secret_key'])) {
+    if ($user && $user['secret_key'] === null) {
         $showSecretKeyForm = true;
     } else {
         $showSecretKeyForm = false;
@@ -47,8 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['secret_key'])) {
 
     if (preg_match('/^\d{6}$/', $secret_key)) {
         try {
+            $hashed_secret_key = password_hash($secret_key, PASSWORD_ARGON2ID);
             $stmt = $conn->prepare("UPDATE users SET secret_key = :secret_key WHERE username = :username");
-            $stmt->bindParam(':secret_key', $secret_key);
+            $stmt->bindParam(':secret_key', $hashed_secret_key);
             $stmt->bindParam(':username', $username);
             $stmt->execute();
 
