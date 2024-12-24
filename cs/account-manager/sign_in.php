@@ -59,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Sign In</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="icon" href="assets/images/logo_favicon.png" type="image/x-icon">
 </head>
 <body>
@@ -80,7 +81,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                             <div class="form-group">
                                 <label for="password">Password</label>
-                                <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+                                    <div class="input-group-append">
+                                        <span class="input-group-text" onclick="togglePasswordVisibility()">
+                                            <i class="fas fa-eye" id="togglePasswordIcon"></i>
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                             <button type="submit" class="btn btn-primary btn-block">Sign In</button>
                         </form>
@@ -89,5 +97,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </div>
+    <script>
+        function togglePasswordVisibility() {
+            const passwordField = document.getElementById('password');
+            const togglePasswordIcon = document.getElementById('togglePasswordIcon');
+            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordField.setAttribute('type', type);
+            togglePasswordIcon.classList.toggle('fa-eye');
+            togglePasswordIcon.classList.toggle('fa-eye-slash');
+        }
+    </script>
 </body>
 </html>
