@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 23, 2024 at 02:25 AM
+-- Generation Time: Dec 24, 2024 at 02:57 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -35,6 +35,13 @@ CREATE TABLE `accounts` (
   `description` text NOT NULL,
   `user_reference` varchar(60) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `accounts`
+--
+
+INSERT INTO `accounts` (`id`, `username`, `email`, `password`, `description`, `user_reference`) VALUES
+(2, 'comodino.rs', 'comodino@proton.me', 'RmpvpGwxCjA0UOwV2mIQo1ZLS2tjM1pBMEk1alRXaFVlaFFwTWpCYnBZd2JaNlFGU0tIMFFXc0JuNGc9', 'proton mail', 'iannelli.lorenzo2006@gmail.com');
 
 -- --------------------------------------------------------
 
@@ -90,8 +97,9 @@ CREATE TABLE `users` (
   `phone_number` varchar(20) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `secret_key` int(6) DEFAULT NULL,
-  `token` varchar(64) DEFAULT NULL,
+  `secret_key` varchar(255) DEFAULT NULL,
+  `session_token` varchar(255) DEFAULT NULL,
+  `verification_token` varchar(255) DEFAULT NULL,
   `status_id` int(11) NOT NULL,
   `role_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -100,10 +108,8 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`email`, `username`, `first_name`, `last_name`, `password_hash`, `phone_number`, `created_at`, `updated_at`, `secret_key`, `token`, `status_id`, `role_id`) VALUES
-('iannelli.lorenzo2006@gmail.com', 'iannelli2', 'lorenzo', 'iannelli', '$argon2id$v=19$m=65536,t=4,p=1$cXR6eWFHUE5LT3lYckxVMw$Glk9wOjsqWCWRnHBcRhku//eqRfwldh9IvHQuVRid+Q', '+12 345 678 9012', '2024-12-18 21:11:29', '2024-12-18 21:11:29', 123456, NULL, 1, 2),
-('iannelli@lockr.com', 'iannelli', NULL, NULL, '$argon2id$v=19$m=65536,t=4,p=1$clc1cE40U2p5T0tFWnp1cw$mVxlGCE82Q480Nt8+2nNIkr9SmYfcJWjnyCoHP9gXsk', '+39 123 456 7890', '2024-12-18 18:49:23', '2024-12-18 18:49:23', 123456, NULL, 1, 1),
-('user@user.com', 'user', NULL, NULL, '$argon2id$v=19$m=65536,t=4,p=1$d0lwRVAvVEh5TlpkRHY4Vg$8GKXH0Ggnd9HGrAHsC2iS+60/Qxmslm9EEH3ELsyVSI', '+123 456 678 9012', '2024-12-23 01:18:10', '2024-12-23 01:18:10', NULL, '32feae59ee9f78e7f2b9e3893e365b4af086b0d6484a6830942b720596b9a308', 1, 2);
+INSERT INTO `users` (`email`, `username`, `first_name`, `last_name`, `password_hash`, `phone_number`, `created_at`, `updated_at`, `secret_key`, `session_token`, `verification_token`, `status_id`, `role_id`) VALUES
+('iannelli.lorenzo2006@gmail.com', 'lorenzoiannelli', 'Lorenzo', 'Iannelli', '$argon2id$v=19$m=65536,t=4,p=1$Z1FobFVCLmd2QkM2MUptdA$lpJ4U0DWmkn0xY77nIeAEdroAbyqJDy5YVvTjYTNAkU', '39 338 399 1931', '2024-12-24 01:35:43', '2024-12-24 01:35:43', '$argon2id$v=19$m=65536,t=4,p=1$akxzYWxHZGp6ZTFpNzgyWQ$UH4Q2/MAH/NJqpxbuDKDvn8FQGV9yeO042cW0cHJ2Ew', 'b7f7054c4bece24d22464da611e0b5f25df7095d9fa54c48bef909b08fd6fa19', NULL, 1, 2);
 
 --
 -- Indexes for dumped tables
@@ -145,7 +151,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `accounts`
 --
 ALTER TABLE `accounts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `roles`
