@@ -44,13 +44,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = "Invalid secret key.";
     } else {
         // Generate a password if not provided
-        if (empty($account_password)) {
-            $account_password = bin2hex(random_bytes(8)); // Generate a random 16-character password
+        if (empty($password)) {
+            $password = bin2hex(random_bytes(8)); // Generate a random 16-character password
         }
 
         // Encrypt account details using OpenSSL
         $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
-        $encrypted_password = openssl_encrypt($account_password, 'aes-256-cbc', $secret_key, 0, $iv);
+        $encrypted_password = openssl_encrypt($password, 'aes-256-cbc', $secret_key, 0, $iv);
 
         // Store the IV along with the encrypted data
         $encrypted_password = base64_encode($iv . $encrypted_password);
