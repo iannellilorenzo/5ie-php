@@ -152,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['secret_key'])) {
                         <div class="card-body text-center">
                             <h5 class="card-title">Add New Account</h5>
                             <p class="card-text">Let us store your account.</p>
-                            <a href="sign_up.php" class="btn btn-primary">Add Account</a>
+                            <a href="add_account.php" class="btn btn-primary">Add Account</a>
                         </div>
                     </div>
                 </div>
