@@ -65,6 +65,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account_id']))
     }
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_account_id'])) {
+    $account_id = $_POST['update_account_id'];
+    $new_username = $_POST['new_username'];
+    $new_email = $_POST['new_email'];
+    $new_password = $_POST['new_password'];
+    $new_description = $_POST['new_description'];
+    $secret_key = implode('', array_map('htmlspecialchars', $_POST['secret_key']));
+
+    try {
+        $conn = new PDO("mysql:host=$server_name;dbname=$db_name", $db_username, $db_password);
+        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        // Retrieve the user's hashed secret key
+        $stmt = $conn->prepare("SELECT secret_key FROM users WHERE username = :username");
+        $stmt->bindParam(':username', $username);
+        $stmt->execute();
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($user && password_verify($secret_key, $user['secret_key'])) {
+            // Encrypt the new password
+            $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
+            $encrypted_password = openssl_encrypt($new_password, 'aes-256-cbc', $secret_key, 0, $iv);
+            $encrypted_password = base64_encode($iv . $encrypted_password);
+
+            // Update the account details
+            $stmt = $conn->prepare("UPDATE accounts SET username = :new_username, email = :new_email, password = :new_password, description = :new_description WHERE id = :id");
+            $stmt->bindParam(':new_username', $new_username);
+            $stmt->bindParam(':new_email', $new_email);
+            $stmt->bindParam(':new_password', $encrypted_password);
+            $stmt->bindParam(':new_description', $new_description);
+            $stmt->bindParam(':id', $account_id);
+            $stmt->execute();
+            $message = "Account updated successfully.";
+        } else {
+            $message = "Invalid secret key.";
+        }
+    } catch (PDOException $e) {
+        $message = "Error: " . $e->getMessage();
+    }
+}
+
 function decrypt_password($encrypted_password, $secret_key) {
     $data = base64_decode($encrypted_password);
     $iv = substr($data, 0, openssl_cipher_iv_length('aes-256-cbc'));
@@ -178,7 +219,7 @@ function decrypt_password($encrypted_password, $secret_key) {
                                 </div>
                             </div>
 
-                            <!-- Modal -->
+                            <!-- Account Details Modal -->
                             <div class="modal fade" id="accountModal<?php echo $account['id']; ?>" tabindex="-1" role="dialog" aria-labelledby="accountModalLabel<?php echo $account['id']; ?>" aria-hidden="true">
                                 <div class="modal-dialog modal-dialog-centered" role="document">
                                     <div class="modal-content">
@@ -196,6 +237,7 @@ function decrypt_password($encrypted_password, $secret_key) {
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-danger" onclick="showDeleteModal('<?php echo $account['id']; ?>', '<?php echo $account['username']; ?>')">Delete</button>
+                                            <button type="button" class="btn btn-warning" onclick="showUpdateModal('<?php echo $account['id']; ?>', '<?php echo htmlspecialchars($account['username']); ?>', '<?php echo htmlspecialchars($account['email']); ?>', '<?php echo htmlspecialchars($account['description']); ?>')">Update</button>
                                             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                                         </div>
                                     </div>
@@ -221,6 +263,54 @@ function decrypt_password($encrypted_password, $secret_key) {
                                                 </div>
                                                 <button type="submit" class="btn btn-danger">Delete</button>
                                                 <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="hideDeleteModal('<?php echo $account['id']; ?>')">Cancel</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Update Account Modal -->
+                            <div class="modal fade" id="updateModal<?php echo $account['id']; ?>" tabindex="-1" role="dialog" aria-labelledby="updateModalLabel<?php echo $account['id']; ?>" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="updateModalLabel<?php echo $account['id']; ?>">Update Account</h5>
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="hideUpdateModal('<?php echo $account['id']; ?>')">
+                                                <span aria-hidden="true">&times;</span>
+                                            </button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form action="view_accounts.php" method="post">
+                                                <input type="hidden" name="update_account_id" value="<?php echo $account['id']; ?>">
+                                                <div class="form-group">
+                                                    <label for="new_username">New Username</label>
+                                                    <input type="text" name="new_username" class="form-control" id="new_username<?php echo $account['id']; ?>" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="new_email">New Email</label>
+                                                    <input type="email" name="new_email" class="form-control" id="new_email<?php echo $account['id']; ?>" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="new_password">New Password</label>
+                                                    <input type="password" name="new_password" class="form-control" id="new_password<?php echo $account['id']; ?>" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="new_description">New Description</label>
+                                                    <textarea name="new_description" class="form-control" id="new_description<?php echo $account['id']; ?>" required></textarea>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="secret_key">Secret Key</label>
+                                                    <div class="form-group text-center">
+                                                        <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
+                                                        <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
+                                                        <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
+                                                        <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
+                                                        <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
+                                                        <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
+                                                    </div>
+                                                </div>
+                                                <button type="submit" class="btn btn-warning">Update</button>
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="hideUpdateModal('<?php echo $account['id']; ?>')">Cancel</button>
                                             </form>
                                         </div>
                                     </div>
@@ -259,6 +349,19 @@ function decrypt_password($encrypted_password, $secret_key) {
 
         function hideDeleteModal(accountId) {
             $('#deleteModal' + accountId).modal('hide');
+            $('#accountModal' + accountId).modal('show');
+        }
+
+        function showUpdateModal(accountId, username, email, description) {
+            $('#accountModal' + accountId).modal('hide');
+            $('#updateModal' + accountId).modal('show');
+            document.getElementById('new_username' + accountId).value = username;
+            document.getElementById('new_email' + accountId).value = email;
+            document.getElementById('new_description' + accountId).value = description;
+        }
+
+        function hideUpdateModal(accountId) {
+            $('#updateModal' + accountId).modal('hide');
             $('#accountModal' + accountId).modal('show');
         }
 
