@@ -131,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                             <div class="form-group">
                                 <label for="email">Email address</label>
-                                <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($email); ?>" required>
+                                <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($email); ?>" pattern="^[A-Za-z0-9._%+-]{1,60}@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" required>
                             </div>
                             <div class="form-group">
                                 <label for="phone_number">Phone Number</label>
@@ -139,20 +139,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                             <div class="form-group">
                                 <label for="first_name">First Name</label>
-                                <input type="text" class="form-control" id="first_name" name="first_name" value="<?php echo htmlspecialchars($first_name); ?>" required>
+                                <input type="text" class="form-control" id="first_name" name="first_name" value="<?php echo htmlspecialchars($first_name); ?>" pattern="^[A-Za-z' -]{1,35}$" required>
                             </div>
                             <div class="form-group">
                                 <label for="last_name">Last Name</label>
-                                <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo htmlspecialchars($last_name); ?>" required>
+                                <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo htmlspecialchars($last_name); ?>" pattern="^[A-Za-z' -]{1,35}$" required>
                             </div>
                             <button type="button" class="btn btn-secondary btn-block mb-3" id="changePasswordButton">Change Password</button>
                             <div class="form-group" id="passwordGroup" style="display: none;">
                                 <label for="password">New Password</label>
-                                <input type="password" class="form-control" id="password" name="password" placeholder="New Password" onpaste="return false;">
+                                <input type="password" class="form-control" id="password" name="password" placeholder="New Password" onpaste="return false;" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$">
                             </div>
                             <div class="form-group" id="confirmPasswordGroup" style="display: none;">
                                 <label for="confirm_password">Confirm New Password</label>
-                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Confirm New Password" onpaste="return false;">
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Confirm New Password" onpaste="return false;" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$">
                             </div>
                             <button type="submit" class="btn btn-primary btn-block">Update Profile</button>
                         </form>

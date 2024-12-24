@@ -128,16 +128,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <form action="add_account.php" method="post">
                             <div class="form-group">
                                 <label for="account_username">Account Username</label>
-                                <input type="text" class="form-control" id="account_username" name="account_username" placeholder="Enter account username" required>
+                                <input type="text" class="form-control" id="account_username" name="account_username" placeholder="Enter account username" patter="^[A-Za-z0-9_.-]{1,30}$" required>
                             </div>
                             <div class="form-group">
                                 <label for="account_email">Account Email</label>
-                                <input type="email" class="form-control" id="account_email" name="account_email" placeholder="Enter account email" required>
+                                <input type="email" class="form-control" id="account_email" name="account_email" placeholder="Enter account email" pattern="^[A-Za-z0-9._%+-]{1,60}@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" required>
                             </div>
                             <div class="form-group">
                                 <label for="account_password">Account Password</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" id="account_password" name="account_password" placeholder="Enter account password">
+                                    <input type="password" class="form-control" id="account_password" name="account_password" placeholder="Enter account password" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$">
                                     <div class="input-group-append">
                                         <span class="input-group-text" onclick="togglePasswordVisibility()">
                                             <i class="fas fa-eye" id="togglePasswordIcon"></i>

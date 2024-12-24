@@ -284,15 +284,15 @@ function decrypt_password($encrypted_password, $secret_key) {
                                                 <input type="hidden" name="update_account_id" value="<?php echo $account['id']; ?>">
                                                 <div class="form-group">
                                                     <label for="new_username">New Username</label>
-                                                    <input type="text" name="new_username" class="form-control" id="new_username<?php echo $account['id']; ?>" required>
+                                                    <input type="text" name="new_username" class="form-control" id="new_username<?php echo $account['id']; ?>" patter="^[A-Za-z0-9_.-]{1,30}$" required>
                                                 </div>
                                                 <div class="form-group">
                                                     <label for="new_email">New Email</label>
-                                                    <input type="email" name="new_email" class="form-control" id="new_email<?php echo $account['id']; ?>" required>
+                                                    <input type="email" name="new_email" class="form-control" id="new_email<?php echo $account['id']; ?>" pattern="^[A-Za-z0-9._%+-]{1,60}@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" required>
                                                 </div>
                                                 <div class="form-group">
                                                     <label for="new_password">New Password</label>
-                                                    <input type="password" name="new_password" class="form-control" id="new_password<?php echo $account['id']; ?>" required>
+                                                    <input type="password" name="new_password" class="form-control" id="new_password<?php echo $account['id']; ?>" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$" required>
                                                 </div>
                                                 <div class="form-group">
                                                     <label for="new_description">New Description</label>

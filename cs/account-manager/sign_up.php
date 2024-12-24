@@ -106,16 +106,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <form action="sign_up.php" method="post">
                             <div class="form-group">
                                 <label for="username">Username</label>
-                                <input type="text" class="form-control" id="username" name="username" placeholder="Enter username" required>
+                                <input type="text" class="form-control" id="username" name="username" placeholder="Enter username" patter="^[A-Za-z0-9_.-]{1,30}$" required>
                             </div>
                             <div class="form-group">
                                 <label for="email">Email</label>
-                                <input type="email" class="form-control" id="email" name="email" placeholder="Enter email" required>
+                                <input type="email" class="form-control" id="email" name="email" placeholder="Enter email" pattern="^[A-Za-z0-9._%+-]{1,60}@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" required>
                             </div>
                             <div class="form-group">
                                 <label for="password">Password</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+                                    <input type="password" class="form-control" id="password" name="password" placeholder="Password" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$" required>
                                     <div class="input-group-append">
                                         <span class="input-group-text" onclick="togglePasswordVisibility()">
                                             <i class="fas fa-eye" id="togglePasswordIcon"></i>
@@ -129,11 +129,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                             <div class="form-group">
                                 <label for="first_name">First Name</label>
-                                <input type="text" class="form-control" id="first_name" name="first_name" placeholder="Enter first name">
+                                <input type="text" class="form-control" id="first_name" name="first_name" placeholder="Enter first name" pattern="^[A-Za-z' -]{1,35}$">
                             </div>
                             <div class="form-group">
                                 <label for="last_name">Last Name</label>
-                                <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Enter last name">
+                                <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Enter last name" pattern="^[A-Za-z' -]{1,35}$">
                             </div>
                             <div class="cf-turnstile" data-sitekey="<?php echo $turnstile_site_key; ?>"></div>
                             <button type="submit" class="btn btn-primary btn-block">Sign Up</button>
