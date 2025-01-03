@@ -1,0 +1,286 @@
+<?php
+require_once 'config.php';
+
+header('Content-Type: application/json');
+
+$method = $_SERVER['REQUEST_METHOD'];
+$path = $_SERVER['REQUEST_URI'];
+
+$param = explode('/', trim($path, '/'));
+
+try {
+    $GLOBALS['conn'] = new PDO("mysql:host=$server_name;dbname=$db_name", $db_username, $db_password);
+    $GLOBALS['conn']->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    echo json_encode(['error' => 'Connection failed: ' . $e->getMessage()]);
+    exit();
+}
+
+// Endpoints:
+// /user/register
+// /user/login
+// /account
+// /account/{id}
+
+switch ($method) {
+    case 'GET':
+        if (isset($param[3]) && $param[3] == 'account' && isset($param[4])) {
+            if (is_numeric($param[4])) {
+                viewAccount($param[4]);
+            } else {
+                viewAllAccounts($param[4]);
+            }
+        } else {
+            echo json_encode(["message" => "Invalid path"]);
+        }
+        break;
+    case 'POST':
+        if (isset($param[3]) && $param[3] == 'user') {
+            if (isset($param[4]) && $param[4] == 'register') {
+                registerUser();
+            } elseif (isset($param[4]) && $param[4] == 'login') {
+                loginUser();
+            } else {
+                echo json_encode(["message" => "Invalid path"]);
+            }
+        } elseif (isset($param[3]) && $param[3] == 'account') {
+            addAccount();
+        } else {
+            echo json_encode(["message" => "Invalid path"]);
+        }
+        break;
+    case 'PUT':
+        if (isset($param[3]) && $param[3] == 'account' && isset($param[4]) && is_numeric($param[4])) {
+            updateAccount($param[4]);
+        } else {
+            echo json_encode(["message" => "Invalid path or invalid ID"]);
+        }
+        break;
+    case 'DELETE':
+        if (isset($param[3]) && $param[3] == 'account' && isset($param[4]) && is_numeric($param[4])) {
+            deleteAccount($param[4]);
+        } else {
+            echo json_encode(["message" => "Invalid path or invalid ID"]);
+        }
+        break;
+    default:
+        echo json_encode(["message" => "Invalid request method"]);
+        break;
+}
+
+function registerUser() {
+    $conn = $GLOBALS['conn'];
+    $data = json_decode(file_get_contents('php://input'), true);
+    $username = $data['username'];
+    $password_hash = password_hash($data['password'], PASSWORD_ARGON2ID);
+    $email = $data['email'];
+    $phone_number = $data['phone_number'];
+    $first_name = $data['first_name'] ?? null;
+    $last_name = $data['last_name'] ?? null;
+    $secret_key = password_hash($data['secret_key'], PASSWORD_ARGON2ID);
+    $status_id = 2; // Inactive status until email is verified
+    $role_id = 2; // User role
+    $session_token = bin2hex(random_bytes(32)); // Session token
+    $verification_token = bin2hex(random_bytes(32)); // Email verification token
+    $hashed_verification_token = password_hash($verification_token, PASSWORD_ARGON2ID); // Hash the verification token
+
+    try {
+        $stmt = $conn->prepare("INSERT INTO users (email, username, first_name, last_name, password_hash, phone_number, secret_key, status_id, role_id, session_token, verification_token) VALUES (:email, :username, :first_name, :last_name, :password_hash, :phone_number, :secret_key, :status_id, :role_id, :session_token, :verification_token)");
+        $stmt->bindParam(':email', $email);
+        $stmt->bindParam(':username', $username);
+        $stmt->bindParam(':first_name', $first_name);
+        $stmt->bindParam(':last_name', $last_name);
+        $stmt->bindParam(':password_hash', $password_hash);
+        $stmt->bindParam(':phone_number', $phone_number);
+        $stmt->bindParam(':secret_key', $secret_key);
+        $stmt->bindParam(':status_id', $status_id);
+        $stmt->bindParam(':role_id', $role_id);
+        $stmt->bindParam(':session_token', $session_token);
+        $stmt->bindParam(':verification_token', $hashed_verification_token);
+        $stmt->execute();
+
+        $verification_link = "http://localhost/5ie-php/cs/account-manager/verify_email.php?token=$verification_token";
+        $subject = "Email Verification - Lockr Account Activation";
+        $message = "Be aware that this is still a test, and you won't be able to actually verify your email via our link. Please click the following link to verify your email: $verification_link";
+        $headers = "From: iannelli.lorenzo.studente@itispaleocapa.it";
+
+        mail($email, $subject, $message, $headers);
+
+        echo json_encode(['message' => 'User registered successfully.']);
+    } catch (PDOException $e) {
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+}
+
+function loginUser() {
+    $conn = $GLOBALS['conn'];
+    $data = json_decode(file_get_contents('php://input'), true);
+    $username = $data['username'];
+    $password = $data['password'];
+    $secret_key = $data['secret_key'];
+
+    try {
+        $stmt = $conn->prepare("SELECT * FROM users WHERE username = :username");
+        $stmt->bindParam(':username', $username);
+        $stmt->execute();
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($user && password_verify($password, $user['password_hash']) && password_verify($secret_key, $user['secret_key'])) {
+            $session_token = bin2hex(random_bytes(32));
+            $stmt = $conn->prepare("UPDATE users SET session_token = :session_token WHERE username = :username");
+            $stmt->bindParam(':session_token', $session_token);
+            $stmt->bindParam(':username', $username);
+            $stmt->execute();
+
+            echo json_encode(['message' => 'Login successful.', 'session_token' => $session_token]);
+        } else {
+            echo json_encode(['error' => 'Invalid username, password, or secret key.']);
+        }
+    } catch (PDOException $e) {
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+}
+
+function addAccount() {
+    $conn = $GLOBALS['conn'];
+    $data = json_decode(file_get_contents('php://input'), true);
+    $username = $data['username'];
+    $email = $data['email'];
+    $password = $data['password'];
+    $description = $data['description'];
+    $user_reference = $data['user_reference'];
+    $secret_key = $data['secret_key'];
+
+    try {
+        // Verify the secret key
+        $stmt = $conn->prepare("SELECT secret_key FROM users WHERE email = :user_reference");
+        $stmt->bindParam(':user_reference', $user_reference);
+        $stmt->execute();
+        $user = $stmt->fetch();
+
+        if ($user && password_verify($secret_key, $user['secret_key'])) {
+            // Encrypt account details using OpenSSL
+            $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
+            $encrypted_password = openssl_encrypt($password, 'aes-256-cbc', $secret_key, 0, $iv);
+
+            // Store the IV along with the encrypted data
+            $encrypted_password = base64_encode($iv . $encrypted_password);
+
+            $stmt = $conn->prepare("INSERT INTO accounts (username, email, password, description, user_reference) VALUES (:username, :email, :password, :description, :user_reference)");
+            $stmt->bindParam(':username', $username);
+            $stmt->bindParam(':email', $email);
+            $stmt->bindParam(':password', $encrypted_password);
+            $stmt->bindParam(':description', $description);
+            $stmt->bindParam(':user_reference', $user_reference);
+            $stmt->execute();
+
+            echo json_encode(['message' => 'Account added successfully.']);
+        } else {
+            echo json_encode(['error' => 'Invalid secret key.']);
+        }
+    } catch (PDOException $e) {
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+}
+
+function viewAccount($account_id) {
+    $conn = $GLOBALS['conn'];
+
+    try {
+        $stmt = $conn->prepare("SELECT * FROM accounts WHERE id = :account_id");
+        $stmt->bindParam(':account_id', $account_id);
+        $stmt->execute();
+        $account = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        echo json_encode($account);
+    } catch (PDOException $e) {
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+}
+
+function viewAllAccounts($user_reference) {
+    $conn = $GLOBALS['conn'];
+
+    try {
+        $stmt = $conn->prepare("SELECT * FROM accounts WHERE user_reference = :user_reference");
+        $stmt->bindParam(':user_reference', $user_reference);
+        $stmt->execute();
+        $accounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode($accounts);
+    } catch (PDOException $e) {
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+}
+
+function updateAccount($account_id) {
+    $conn = $GLOBALS['conn'];
+    $data = json_decode(file_get_contents('php://input'), true);
+    $fields = [];
+    $params = [':account_id' => $account_id];
+    $secret_key = $data['secret_key'];
+
+    // Verify the secret key
+    $stmt = $conn->prepare("SELECT secret_key FROM users WHERE email = :user_reference");
+    $stmt->bindParam(':user_reference', $data['user_reference']);
+    $stmt->execute();
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($user && password_verify($secret_key, $user['secret_key'])) {
+        if (!empty($data['new_username'])) {
+            $fields[] = 'username = :new_username';
+            $params[':new_username'] = $data['new_username'];
+        }
+        if (!empty($data['new_email'])) {
+            $fields[] = 'email = :new_email';
+            $params[':new_email'] = $data['new_email'];
+        }
+        if (!empty($data['new_password'])) {
+            // Encrypt the new password using OpenSSL
+            $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
+            $encrypted_password = openssl_encrypt($data['new_password'], 'aes-256-cbc', $secret_key, 0, $iv);
+            $encrypted_password = base64_encode($iv . $encrypted_password);
+            $fields[] = 'password = :new_password';
+            $params[':new_password'] = $encrypted_password;
+        }
+        if (!empty($data['new_description'])) {
+            $fields[] = 'description = :new_description';
+            $params[':new_description'] = $data['new_description'];
+        }
+
+        if (empty($fields)) {
+            echo json_encode(['error' => 'No fields to update.']);
+            return;
+        }
+
+        $sql = 'UPDATE accounts SET ' . implode(', ', $fields) . ' WHERE id = :account_id';
+
+        try {
+            $stmt = $conn->prepare($sql);
+            foreach ($params as $key => &$val) {
+                $stmt->bindParam($key, $val);
+            }
+            $stmt->execute();
+
+            echo json_encode(['message' => 'Account updated successfully.']);
+        } catch (PDOException $e) {
+            echo json_encode(['error' => $e->getMessage()]);
+        }
+    } else {
+        echo json_encode(['error' => 'Invalid secret key.']);
+    }
+}
+
+function deleteAccount($account_id) {
+    $conn = $GLOBALS['conn'];
+
+    try {
+        $stmt = $conn->prepare("DELETE FROM accounts WHERE id = :account_id");
+        $stmt->bindParam(':account_id', $account_id);
+        $stmt->execute();
+
+        echo json_encode(['message' => 'Account deleted successfully.']);
+    } catch (PDOException $e) {
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+}
