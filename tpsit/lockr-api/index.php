@@ -19,6 +19,7 @@ try {
 // Endpoints:
 // /user/register
 // /user/login
+// user/{email}
 // /account
 // /account/{id}
 
@@ -30,8 +31,8 @@ switch ($method) {
             } else {
                 viewAllAccounts($param[4]);
             }
-        } else if (isset($param[3]) && $param[3] == 'user' && isset($param[4]) && $param[4] == 'password-hash') {
-            getPasswordHash();
+        } else if (isset($param[3]) && $param[3] == 'user' && isset($param[4])) {
+            getPasswordHash($param[4]);
         } else {
             echo json_encode(["message" => "Invalid path"]);
         }
@@ -200,10 +201,8 @@ function viewAccount($account_id) {
     }
 }
 
-function viewAllAccounts() {
+function viewAllAccounts($email) {
     $conn = $GLOBALS['conn'];
-    $data = json_decode(file_get_contents('php://input'), true);
-    $email = $data['Email'];
 
     try {
         $stmt = $conn->prepare("SELECT * FROM accounts WHERE user_reference = :user_reference");
@@ -217,10 +216,8 @@ function viewAllAccounts() {
     }
 }
 
-function getPasswordHash() {
+function getPasswordHash($email) {
     $conn = $GLOBALS['conn'];
-    $data = json_decode(file_get_contents('php://input'), true);
-    $email = $data['Email'];
 
     try {
         $stmt = $conn->prepare("SELECT password_hash FROM users WHERE email = :email");
