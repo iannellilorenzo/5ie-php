@@ -30,6 +30,8 @@ switch ($method) {
             } else {
                 viewAllAccounts($param[4]);
             }
+        } else if (isset($param[3]) && $param[3] == 'user' && isset($param[4]) && $param[4] == 'password-hash') {
+            getPasswordHash();
         } else {
             echo json_encode(["message" => "Invalid path"]);
         }
@@ -198,16 +200,39 @@ function viewAccount($account_id) {
     }
 }
 
-function viewAllAccounts($user_reference) {
+function viewAllAccounts() {
     $conn = $GLOBALS['conn'];
+    $data = json_decode(file_get_contents('php://input'), true);
+    $email = $data['Email'];
 
     try {
         $stmt = $conn->prepare("SELECT * FROM accounts WHERE user_reference = :user_reference");
-        $stmt->bindParam(':user_reference', $user_reference);
+        $stmt->bindParam(':user_reference', $email);
         $stmt->execute();
         $accounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         echo json_encode($accounts);
+    } catch (PDOException $e) {
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+}
+
+function getPasswordHash() {
+    $conn = $GLOBALS['conn'];
+    $data = json_decode(file_get_contents('php://input'), true);
+    $email = $data['Email'];
+
+    try {
+        $stmt = $conn->prepare("SELECT password_hash FROM users WHERE email = :email");
+        $stmt->bindParam(':email', $email);
+        $stmt->execute();
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($user) {
+            echo json_encode(['password_hash' => $user['password_hash']]);
+        } else {
+            echo json_encode(['error' => 'User not found.']);
+        }
     } catch (PDOException $e) {
         echo json_encode(['error' => $e->getMessage()]);
     }
