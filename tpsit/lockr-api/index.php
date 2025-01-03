@@ -71,13 +71,13 @@ switch ($method) {
 function registerUser() {
     $conn = $GLOBALS['conn'];
     $data = json_decode(file_get_contents('php://input'), true);
-    $username = $data['username'];
-    $password_hash = password_hash($data['password'], PASSWORD_ARGON2ID);
-    $email = $data['email'];
-    $phone_number = $data['phone_number'];
-    $first_name = $data['first_name'] ?? null;
-    $last_name = $data['last_name'] ?? null;
-    $secret_key = password_hash($data['secret_key'], PASSWORD_ARGON2ID);
+    $username = $data['Username'];
+    $password_hash = password_hash($data['PasswordHash'], PASSWORD_ARGON2ID);
+    $email = $data['Email'];
+    $phone_number = $data['PhoneNumber'];
+    $first_name = $data['FirstName'] ?? null;
+    $last_name = $data['LastName'] ?? null;
+    $secret_key = password_hash($data['SecretKey'], PASSWORD_ARGON2ID);
     $status_id = 2; // Inactive status until email is verified
     $role_id = 2; // User role
     $session_token = bin2hex(random_bytes(32)); // Session token
@@ -115,9 +115,9 @@ function registerUser() {
 function loginUser() {
     $conn = $GLOBALS['conn'];
     $data = json_decode(file_get_contents('php://input'), true);
-    $username = $data['username'];
-    $password = $data['password'];
-    $secret_key = $data['secret_key'];
+    $username = $data['Username'];
+    $password = $data['PasswordHash'];
+    $secret_key = $data['SecretKey'];
 
     try {
         $stmt = $conn->prepare("SELECT * FROM users WHERE username = :username");
@@ -144,12 +144,12 @@ function loginUser() {
 function addAccount() {
     $conn = $GLOBALS['conn'];
     $data = json_decode(file_get_contents('php://input'), true);
-    $username = $data['username'];
-    $email = $data['email'];
-    $password = $data['password'];
-    $description = $data['description'];
-    $user_reference = $data['user_reference'];
-    $secret_key = $data['secret_key'];
+    $username = $data['Username'];
+    $email = $data['Email'];
+    $password = $data['PasswordHash'];
+    $description = $data['Description'];
+    $user_reference = $data['UserReference'];
+    $secret_key = $data['SecretKey'];
 
     try {
         // Verify the secret key
@@ -218,34 +218,34 @@ function updateAccount($account_id) {
     $data = json_decode(file_get_contents('php://input'), true);
     $fields = [];
     $params = [':account_id' => $account_id];
-    $secret_key = $data['secret_key'];
+    $secret_key = $data['SecretKey'];
 
     // Verify the secret key
     $stmt = $conn->prepare("SELECT secret_key FROM users WHERE email = :user_reference");
-    $stmt->bindParam(':user_reference', $data['user_reference']);
+    $stmt->bindParam(':user_reference', $data['UserReference']);
     $stmt->execute();
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($user && password_verify($secret_key, $user['secret_key'])) {
-        if (!empty($data['new_username'])) {
+        if (!empty($data['Username'])) {
             $fields[] = 'username = :new_username';
-            $params[':new_username'] = $data['new_username'];
+            $params[':new_username'] = $data['Username'];
         }
-        if (!empty($data['new_email'])) {
+        if (!empty($data['Email'])) {
             $fields[] = 'email = :new_email';
-            $params[':new_email'] = $data['new_email'];
+            $params[':new_email'] = $data['Email'];
         }
-        if (!empty($data['new_password'])) {
+        if (!empty($data['PasswordHash'])) {
             // Encrypt the new password using OpenSSL
             $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
-            $encrypted_password = openssl_encrypt($data['new_password'], 'aes-256-cbc', $secret_key, 0, $iv);
+            $encrypted_password = openssl_encrypt($data['PasswordHash'], 'aes-256-cbc', $secret_key, 0, $iv);
             $encrypted_password = base64_encode($iv . $encrypted_password);
             $fields[] = 'password = :new_password';
             $params[':new_password'] = $encrypted_password;
         }
-        if (!empty($data['new_description'])) {
+        if (!empty($data['Description'])) {
             $fields[] = 'description = :new_description';
-            $params[':new_description'] = $data['new_description'];
+            $params[':new_description'] = $data['Description'];
         }
 
         if (empty($fields)) {
