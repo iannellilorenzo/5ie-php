@@ -149,7 +149,7 @@ function addAccount() {
     $data = json_decode(file_get_contents('php://input'), true);
     $username = $data['Username'];
     $email = $data['Email'];
-    $password = $data['PasswordHash'];
+    $password = $data['Password'];
     $description = $data['Description'];
     $user_reference = $data['UserReference'];
     $secret_key = $data['SecretKey'];
