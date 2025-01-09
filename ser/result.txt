@@ -1,2 +1,0 @@
-key: 6dddb5d7f527bab69f921df1440cfbb6
-cipher: 
