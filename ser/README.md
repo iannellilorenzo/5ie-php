@@ -32,6 +32,7 @@ RC5 is a symmetric block cipher with a variable block size, key size, and number
 ## Operators Used
 
 ### Bitwise Operators
+
 - `<<` (left shift): Shifts the bits of a number to the left.
 - `>>` (right shift): Shifts the bits of a number to the right.
 - `^` (bitwise XOR): Performs a bitwise exclusive OR operation.
@@ -39,11 +40,13 @@ RC5 is a symmetric block cipher with a variable block size, key size, and number
 - `|` (bitwise OR): Performs a bitwise OR operation.
 
 ### Arithmetic Operators
+
 - `+` (addition): Adds two numbers.
 - `-` (subtraction): Subtracts one number from another.
 - `%` (modulus): Returns the remainder of a division operation.
 
 ### Functions
+
 - `rotateLeft($value, $shift, $wordSize)`: Rotates the bits of `$value` to the left by `$shift` positions.
 - `rotateRight($value, $shift, $wordSize)`: Rotates the bits of `$value` to the right by `$shift` positions.
 
