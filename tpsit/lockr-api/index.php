@@ -162,17 +162,10 @@ function addAccount() {
         $user = $stmt->fetch();
 
         if ($user && password_verify($secret_key, $user['secret_key'])) {
-            // Encrypt account details using OpenSSL
-            $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
-            $encrypted_password = openssl_encrypt($password, 'aes-256-cbc', $secret_key, 0, $iv);
-
-            // Store the IV along with the encrypted data
-            $encrypted_password = base64_encode($iv . $encrypted_password);
-
             $stmt = $conn->prepare("INSERT INTO accounts (username, email, password, description, user_reference) VALUES (:username, :email, :password, :description, :user_reference)");
             $stmt->bindParam(':username', $username);
             $stmt->bindParam(':email', $email);
-            $stmt->bindParam(':password', $encrypted_password);
+            $stmt->bindParam(':password', $password);
             $stmt->bindParam(':description', $description);
             $stmt->bindParam(':user_reference', $user_reference);
             $stmt->execute();
