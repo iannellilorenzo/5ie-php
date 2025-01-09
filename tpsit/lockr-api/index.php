@@ -251,12 +251,8 @@ function updateAccount($account_id) {
             $params[':new_email'] = $data['Email'];
         }
         if (!empty($data['PasswordHash'])) {
-            // Encrypt the new password using OpenSSL
-            $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
-            $encrypted_password = openssl_encrypt($data['PasswordHash'], 'aes-256-cbc', $secret_key, 0, $iv);
-            $encrypted_password = base64_encode($iv . $encrypted_password);
             $fields[] = 'password = :new_password';
-            $params[':new_password'] = $encrypted_password;
+            $params[':new_password'] = $data["PasswordHash"];
         }
         if (!empty($data['Description'])) {
             $fields[] = 'description = :new_description';
