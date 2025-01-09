@@ -7,10 +7,11 @@
         function setFormAction() {
             var form = document.getElementById('myForm');
             var rc4 = document.getElementById('rc4').checked;
+            var rc5 = document.getElementById('rc5').checked;
             var encrypt = document.getElementById('encrypt').checked;
             if (rc4) {
                 form.action = encrypt ? 'index.php?algorithm=rc4&operation=encrypt' : 'index.php?algorithm=rc4&operation=decrypt';
-            } else {
+            } else if (rc5) {
                 form.action = encrypt ? 'index.php?algorithm=rc5&operation=encrypt' : 'index.php?algorithm=rc5&operation=decrypt';
             }
         }
@@ -278,6 +279,18 @@
                         echo "<div class='mt-4'><p>Key: " . htmlspecialchars($key) . "</p>";
                         echo "<p>Encrypted: " . bin2hex($encryptedData) . "</p></div>";
                     } else {
+                        if (isset($_FILES['file']) && $_FILES['file']['error'] == UPLOAD_ERR_OK) {
+                            $fileContent = file_get_contents($_FILES['file']['tmp_name']);
+                            if (preg_match('/key:\s*(\S+)\ncipher:\s*(\S+)/', $fileContent, $matches)) {
+                                $key = $matches[1];
+                                $data = $matches[2];
+                            } else {
+                                echo "<div class='mt-4'><p>Invalid file format. Expected format:</p>";
+                                echo "<p>key: &lt;key&gt;</p>";
+                                echo "<p>cipher: &lt;cipher&gt;</p></div>";
+                                exit;
+                            }
+                        }
                         $decryptedData = rc4Decrypt($key, hex2bin($data));
                         $result = "key: " . htmlspecialchars($key) . "\ncipher: " . htmlspecialchars($decryptedData);
                         echo "<div class='mt-4'><p>Key: " . htmlspecialchars($key) . "</p>";
@@ -288,13 +301,25 @@
                         }
                         echo "</div>";
                     }
-                } else {
+                } else if ($algorithm == 'rc5') {
                     if ($operation == 'encrypt') {
                         $encryptedData = rc5Encrypt($key, $data);
                         $result = "key: " . htmlspecialchars($key) . "\ncipher: " . bin2hex($encryptedData);
                         echo "<div class='mt-4'><p>Key: " . htmlspecialchars($key) . "</p>";
                         echo "<p>Encrypted: " . bin2hex($encryptedData) . "</p></div>";
                     } else {
+                        if (isset($_FILES['file']) && $_FILES['file']['error'] == UPLOAD_ERR_OK) {
+                            $fileContent = file_get_contents($_FILES['file']['tmp_name']);
+                            if (preg_match('/key:\s*(\S+)\ncipher:\s*(\S+)/', $fileContent, $matches)) {
+                                $key = $matches[1];
+                                $data = $matches[2];
+                            } else {
+                                echo "<div class='mt-4'><p>Invalid file format. Expected format:</p>";
+                                echo "<p>key: &lt;key&gt;</p>";
+                                echo "<p>cipher: &lt;cipher&gt;</p></div>";
+                                exit;
+                            }
+                        }
                         $decryptedData = rc5Decrypt($key, hex2bin($data));
                         $result = "key: " . htmlspecialchars($key) . "\ncipher: " . htmlspecialchars($decryptedData);
                         echo "<div class='mt-4'><p>Key: " . htmlspecialchars($key) . "</p>";
@@ -310,7 +335,7 @@
                 // Create a downloadable file with the result
                 $filename = "result.txt";
                 file_put_contents($filename, $result);
-                echo "<a href='$filename' class='btn btn-success mt-3'>Download Result</a>";
+                echo "<a href='$filename' class='btn btn-success mt-3' download>Download Result</a>";
             } else {
                 echo "<div class='mt-4'><p>No data provided.</p></div>";
             }
