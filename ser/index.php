@@ -14,15 +14,42 @@
                 form.action = encrypt ? 'index.php?algorithm=rc5&operation=encrypt' : 'index.php?algorithm=rc5&operation=decrypt';
             }
         }
+
+        function toggleInputMethod() {
+            var inputMethod = document.getElementById('inputMethod').value;
+            var textInput = document.getElementById('textInput');
+            var fileInput = document.getElementById('fileInput');
+            if (inputMethod === 'text') {
+                textInput.style.display = 'block';
+                fileInput.style.display = 'none';
+            } else {
+                textInput.style.display = 'none';
+                fileInput.style.display = 'block';
+            }
+        }
     </script>
 </head>
 <body>
     <div class="container mt-5">
         <h2 class="mb-4">Encryption Example</h2>
-        <form id="myForm" method="post" onsubmit="setFormAction()">
+        <form id="myForm" method="post" enctype="multipart/form-data" onsubmit="setFormAction()">
             <div class="form-group">
+                <label for="inputMethod">Select input method:</label>
+                <select class="form-control" id="inputMethod" name="inputMethod" onchange="toggleInputMethod()">
+                    <option value="text">Text Input</option>
+                    <option value="file">File Upload</option>
+                </select>
+            </div>
+            <div class="form-group" id="textInput">
                 <label for="data">Insert below your data:</label>
-                <input type="text" class="form-control" id="data" name="data" required>
+                <input type="text" class="form-control" id="data" name="data">
+            </div>
+            <div class="form-group" id="fileInput" style="display: none;">
+                <label for="file">Or upload a file:</label>
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="file" name="file">
+                    <label class="custom-file-label" for="file">Choose file</label>
+                </div>
             </div>
             <div class="form-group">
                 <label for="key">Insert below your key used for hashing (Leave blank to generate one):</label>
@@ -236,6 +263,10 @@
             }
 
             $data = $_POST['data'];
+            if (isset($_FILES['file']) && $_FILES['file']['error'] == UPLOAD_ERR_OK) {
+                $data = file_get_contents($_FILES['file']['tmp_name']);
+            }
+
             $algorithm = $_GET['algorithm'];
             $operation = $_GET['operation'];
 
@@ -243,24 +274,43 @@
                 if ($algorithm == 'rc4') {
                     if ($operation == 'encrypt') {
                         $encryptedData = rc4Encrypt($key, $data);
+                        $result = "key: " . htmlspecialchars($key) . "\ncipher: " . bin2hex($encryptedData);
                         echo "<div class='mt-4'><p>Key: " . htmlspecialchars($key) . "</p>";
                         echo "<p>Encrypted: " . bin2hex($encryptedData) . "</p></div>";
                     } else {
                         $decryptedData = rc4Decrypt($key, hex2bin($data));
+                        $result = "key: " . htmlspecialchars($key) . "\ncipher: " . htmlspecialchars($decryptedData);
                         echo "<div class='mt-4'><p>Key: " . htmlspecialchars($key) . "</p>";
-                        echo "<p>Decrypted: " . htmlspecialchars($decryptedData) . "</p></div>";
+                        if (strlen($decryptedData) > 100) {
+                            echo "<p>Cipher is too long to display. Please download the result file.</p>";
+                        } else {
+                            echo "<p>Decrypted: " . htmlspecialchars($decryptedData) . "</p>";
+                        }
+                        echo "</div>";
                     }
                 } else {
                     if ($operation == 'encrypt') {
                         $encryptedData = rc5Encrypt($key, $data);
+                        $result = "key: " . htmlspecialchars($key) . "\ncipher: " . bin2hex($encryptedData);
                         echo "<div class='mt-4'><p>Key: " . htmlspecialchars($key) . "</p>";
                         echo "<p>Encrypted: " . bin2hex($encryptedData) . "</p></div>";
                     } else {
                         $decryptedData = rc5Decrypt($key, hex2bin($data));
+                        $result = "key: " . htmlspecialchars($key) . "\ncipher: " . htmlspecialchars($decryptedData);
                         echo "<div class='mt-4'><p>Key: " . htmlspecialchars($key) . "</p>";
-                        echo "<p>Decrypted: " . htmlspecialchars($decryptedData) . "</p></div>";
+                        if (strlen($decryptedData) > 100) {
+                            echo "<p>Cipher is too long to display. Please download the result file.</p>";
+                        } else {
+                            echo "<p>Decrypted: " . htmlspecialchars($decryptedData) . "</p>";
+                        }
+                        echo "</div>";
                     }
                 }
+
+                // Create a downloadable file with the result
+                $filename = "result.txt";
+                file_put_contents($filename, $result);
+                echo "<a href='$filename' class='btn btn-success mt-3'>Download Result</a>";
             } else {
                 echo "<div class='mt-4'><p>No data provided.</p></div>";
             }
