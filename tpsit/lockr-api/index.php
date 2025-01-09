@@ -250,9 +250,9 @@ function updateAccount($account_id) {
             $fields[] = 'email = :new_email';
             $params[':new_email'] = $data['Email'];
         }
-        if (!empty($data['PasswordHash'])) {
+        if (!empty($data['Password'])) {
             $fields[] = 'password = :new_password';
-            $params[':new_password'] = $data["PasswordHash"];
+            $params[':new_password'] = $data["Password"];
         }
         if (!empty($data['Description'])) {
             $fields[] = 'description = :new_description';
