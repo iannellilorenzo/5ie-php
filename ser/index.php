@@ -54,6 +54,7 @@
         </form>
 
         <?php
+        // RC4 encryption function
         function rc4Encrypt($key, $data) {
             if (empty($key) || empty($data)) {
                 return '';
@@ -94,10 +95,12 @@
             return $result;
         }
 
+        // RC4 decryption function (same as encryption because RC4 is symmetric)
         function rc4Decrypt($key, $data) {
-            return rc4Encrypt($key, $data); // RC4 is symmetric
+            return rc4Encrypt($key, $data);
         }
 
+        // RC5 encryption function
         function rc5Encrypt($key, $text, $rounds = 12, $wordSize = 32) {
             $modulus = 1 << $wordSize; // Modulus (2^wordSize)
             $mask = $modulus - 1; // Mask for modulo operations
@@ -156,6 +159,7 @@
             return $encryptedText;
         }
 
+        // RC5 decryption function
         function rc5Decrypt($key, $encryptedText, $rounds = 12, $wordSize = 32) {
             $modulus = 1 << $wordSize;
             $mask = $modulus - 1;
@@ -210,14 +214,17 @@
             return rtrim($decryptedText, "\0");
         }
 
+        // Rotate bits to the left
         function rotateLeft($value, $shift, $wordSize) {
             return (($value << $shift) | ($value >> ($wordSize - $shift))) & ((1 << $wordSize) - 1);
         }
 
+        // Rotate bits to the right
         function rotateRight($value, $shift, $wordSize) {
             return (($value >> $shift) | ($value << ($wordSize - $shift))) & ((1 << $wordSize) - 1);
         }
 
+        // Generate a random key of specified length
         function generateRandomKey($length = 16) {
             return bin2hex(random_bytes($length));
         }
@@ -235,23 +242,23 @@
             if (!empty($data)) {
                 if ($algorithm == 'rc4') {
                     if ($operation == 'encrypt') {
-                        $encrypted = rc4Encrypt($key, $data);
+                        $encryptedData = rc4Encrypt($key, $data);
                         echo "<div class='mt-4'><p>Key: " . htmlspecialchars($key) . "</p>";
-                        echo "<p>Encrypted: " . bin2hex($encrypted) . "</p></div>";
+                        echo "<p>Encrypted: " . bin2hex($encryptedData) . "</p></div>";
                     } else {
-                        $decrypted = rc4Decrypt($key, hex2bin($data));
+                        $decryptedData = rc4Decrypt($key, hex2bin($data));
                         echo "<div class='mt-4'><p>Key: " . htmlspecialchars($key) . "</p>";
-                        echo "<p>Decrypted: " . htmlspecialchars($decrypted) . "</p></div>";
+                        echo "<p>Decrypted: " . htmlspecialchars($decryptedData) . "</p></div>";
                     }
                 } else {
                     if ($operation == 'encrypt') {
-                        $encrypted = rc5Encrypt($key, $data);
+                        $encryptedData = rc5Encrypt($key, $data);
                         echo "<div class='mt-4'><p>Key: " . htmlspecialchars($key) . "</p>";
-                        echo "<p>Encrypted: " . bin2hex($encrypted) . "</p></div>";
+                        echo "<p>Encrypted: " . bin2hex($encryptedData) . "</p></div>";
                     } else {
-                        $decrypted = rc5Decrypt($key, hex2bin($data));
+                        $decryptedData = rc5Decrypt($key, hex2bin($data));
                         echo "<div class='mt-4'><p>Key: " . htmlspecialchars($key) . "</p>";
-                        echo "<p>Decrypted: " . htmlspecialchars($decrypted) . "</p></div>";
+                        echo "<p>Decrypted: " . htmlspecialchars($decryptedData) . "</p></div>";
                     }
                 }
             } else {
