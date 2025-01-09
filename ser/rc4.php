@@ -44,13 +44,22 @@ function rc4Decrypt($key, $data) {
     return rc4Encrypt($key, $data); // RC4 is symmetric
 }
 
+function generateRandomKey($length = 16) {
+    return bin2hex(random_bytes($length));
+}
+
 $encrypted = '';
 $decrypted = '';
+$key = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (isset($_POST['key']) && isset($_POST['data'])) {
-        $key = $_POST['key'];
-        $data = $_POST['data'];
+    $key = $_POST['key'];
+    if (empty($key)) {
+        $key = generateRandomKey(16);
+    }
+
+    $data = $_POST['data'];
+    if (!empty($data)) {
         $encrypted = rc4Encrypt($key, $data);
         $decrypted = rc4Decrypt($key, $encrypted);
     }
@@ -63,9 +72,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>RC4 Encryption</title>
 </head>
 <body>
-    <?php if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['key']) && isset($_POST['data'])): ?>
+    <?php if ($_SERVER['REQUEST_METHOD'] == 'POST' && !empty($data)): ?>
+        <p>Key: <?php echo htmlspecialchars($key); ?></p>
         <p>Encrypted: <?php echo bin2hex($encrypted); ?></p>
         <p>Decrypted: <?php echo htmlspecialchars($decrypted); ?></p>
+    <?php else: ?>
+        <p>No data provided.</p>
     <?php endif; ?>
 </body>
 </html>
