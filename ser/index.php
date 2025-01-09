@@ -19,7 +19,7 @@
         <label for="text">Insert below your text to hash: </label>
         <input type="text" id="data" name="data"><br>
 
-        <label for="key">Insert below your key used for hashing: </label>
+        <label for="key">Insert below your key used for hashing (Leave blank to generate one): </label>
         <input type="text" id="key" name="key"><br>
 
         <hr>
