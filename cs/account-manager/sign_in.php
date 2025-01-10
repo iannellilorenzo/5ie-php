@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <form action="sign_in.php" method="post">
                             <div class="form-group">
                                 <label for="username">Username</label>
-                                <input type="text" class="form-control" id="username" name="username" placeholder="Enter username" patter="^[A-Za-z0-9_.-]{1,30}$" required>
+                                <input type="text" class="form-control" id="username" name="username" placeholder="Enter username" pattern="^[A-Za-z0-9_.-]{1,30}$" required>
                             </div>
                             <div class="form-group">
                                 <label for="password">Password</label>
@@ -92,6 +92,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                             <button type="submit" class="btn btn-primary btn-block">Sign In</button>
                         </form>
+                        <div class="text-center mt-3">
+                            <p>Don't have an account? <a href="sign_up.php">Register here</a></p>
+                        </div>
                     </div>
                 </div>
             </div>
