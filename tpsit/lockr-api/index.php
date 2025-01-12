@@ -19,9 +19,10 @@ try {
 // Endpoints:
 // /user/register
 // /user/login
-// user/{email}
+// /user/{email}
 // /account
 // /account/{id}
+// /user/password
 
 switch ($method) {
     case 'GET':
@@ -55,6 +56,8 @@ switch ($method) {
     case 'PUT':
         if (isset($param[3]) && $param[3] == 'account' && isset($param[4]) && is_numeric($param[4])) {
             updateAccount($param[4]);
+        } elseif (isset($param[3]) && $param[3] == 'user' && isset($param[4]) && $param[4] == 'password') {
+            updateMasterPassword();
         } else {
             echo json_encode(["message" => "Invalid path or invalid ID"]);
         }
@@ -291,6 +294,34 @@ function deleteAccount($account_id) {
         $stmt->execute();
 
         echo json_encode(['message' => 'Account deleted successfully.']);
+    } catch (PDOException $e) {
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+}
+
+function updateMasterPassword() {
+    $conn = $GLOBALS['conn'];
+    $data = json_decode(file_get_contents('php://input'), true);
+    $email = $data['Email'];
+    $new_password = $data['NewPassword'];
+
+    try {
+        $stmt = $conn->prepare("SELECT * FROM users WHERE email = :email");
+        $stmt->bindParam(':email', $email);
+        $stmt->execute();
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($user) {
+            $new_password_hash = password_hash($new_password, PASSWORD_ARGON2ID);
+            $stmt = $conn->prepare("UPDATE users SET password_hash = :new_password_hash WHERE email = :email");
+            $stmt->bindParam(':new_password_hash', $new_password_hash);
+            $stmt->bindParam(':email', $email);
+            $stmt->execute();
+
+            echo json_encode(['message' => 'Master password updated successfully.']);
+        } else {
+            echo json_encode(['error' => 'Invalid email.']);
+        }
     } catch (PDOException $e) {
         echo json_encode(['error' => $e->getMessage()]);
     }
