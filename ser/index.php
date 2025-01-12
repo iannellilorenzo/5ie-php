@@ -1,39 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Encryption Example</title>
+    <title>RC4 and RC5 Tool</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
     <script>
-        function setFormAction() {
-            var form = document.getElementById('myForm');
-            var rc4 = document.getElementById('rc4').checked;
-            var rc5 = document.getElementById('rc5').checked;
-            var encrypt = document.getElementById('encrypt').checked;
-            if (rc4) {
-                form.action = encrypt ? 'index.php?algorithm=rc4&operation=encrypt' : 'index.php?algorithm=rc4&operation=decrypt';
-            } else if (rc5) {
-                form.action = encrypt ? 'index.php?algorithm=rc5&operation=encrypt' : 'index.php?algorithm=rc5&operation=decrypt';
-            }
-        }
-
         function toggleInputMethod() {
             var inputMethod = document.getElementById('inputMethod').value;
             var textInput = document.getElementById('textInput');
-            var fileInput = document.getElementById('fileInput');
+            var fileInputs = document.getElementById('fileInputs');
+            var keyTextInput = document.getElementById('keyTextInput');
+            var keyFileInput = document.getElementById('keyFileInput');
+            var cipherFileInput = document.getElementById('cipherFile');
+            var operation = document.getElementById('operation').value;
+            
             if (inputMethod === 'text') {
                 textInput.style.display = 'block';
-                fileInput.style.display = 'none';
+                fileInputs.style.display = 'none';
+                keyTextInput.style.display = 'block';
+                keyFileInput.style.display = 'none';
+                cipherFileInput.removeAttribute('required');
             } else {
                 textInput.style.display = 'none';
-                fileInput.style.display = 'block';
+                fileInputs.style.display = 'block';
+                keyTextInput.style.display = 'none';
+                keyFileInput.style.display = 'block';
+                cipherFileInput.setAttribute('required', 'required');
             }
+
+            if (operation === 'encrypt') {
+                document.getElementById('fileLabel').innerText = 'File to Encrypt:';
+            } else {
+                document.getElementById('fileLabel').innerText = 'Cipher File:';
+            }
+        }
+
+        function updateLabels() {
+            var operation = document.getElementById('operation').value;
+            if (operation === 'encrypt') {
+                document.getElementById('dataLabel').innerText = 'Insert your data:';
+                document.getElementById('keyLabel').innerText = 'Insert your key (Leave blank to generate one):';
+            } else {
+                document.getElementById('dataLabel').innerText = 'Insert your cipher data:';
+                document.getElementById('keyLabel').innerText = 'Insert your key used for decryption:';
+            }
+            toggleInputMethod();
         }
     </script>
 </head>
 <body>
     <div class="container mt-5">
-        <h2 class="mb-4">Encryption Example</h2>
-        <form id="myForm" method="post" enctype="multipart/form-data" onsubmit="setFormAction()">
+        <h2 class="mb-4">RC4 and RC5 Tool</h2>
+        <form id="myForm" method="post" enctype="multipart/form-data" action="index.php">
+            <div class="form-group">
+                <label for="operation">Operation:</label>
+                <select class="form-control" id="operation" name="operation" onchange="updateLabels()" required>
+                    <option value="encrypt">Encrypt</option>
+                    <option value="decrypt">Decrypt</option>
+                </select>
+            </div>
             <div class="form-group">
                 <label for="inputMethod">Select input method:</label>
                 <select class="form-control" id="inputMethod" name="inputMethod" onchange="toggleInputMethod()">
@@ -41,42 +65,47 @@
                     <option value="file">File Upload</option>
                 </select>
             </div>
+
+            <!-- Text Input Section -->
             <div class="form-group" id="textInput">
-                <label for="data">Insert below your data:</label>
+                <label id="dataLabel" for="data">Insert your data:</label>
                 <input type="text" class="form-control" id="data" name="data">
             </div>
-            <div class="form-group" id="fileInput" style="display: none;">
-                <label for="file">Or upload a file:</label>
-                <div class="custom-file">
-                    <input type="file" class="custom-file-input" id="file" name="file">
-                    <label class="custom-file-label" for="file">Choose file</label>
+
+            <!-- File Input Section -->
+            <div id="fileInputs" style="display: none;">
+                <div class="form-group">
+                    <label id="fileLabel" for="cipherFile">Cipher File:</label>
+                    <div class="custom-file mb-3">
+                        <input type="file" class="custom-file-input" id="cipherFile" name="cipherFile">
+                        <label class="custom-file-label" for="cipherFile">Choose file</label>
+                    </div>
                 </div>
             </div>
-            <div class="form-group">
-                <label for="key">Insert below your key used for hashing (Leave blank to generate one):</label>
+
+            <!-- Text Key Input -->
+            <div class="form-group" id="keyTextInput">
+                <label id="keyLabel" for="key">Insert your key (Leave blank to generate one):</label>
                 <input type="text" class="form-control" id="key" name="key">
             </div>
-            <div class="form-group">
-                <label>Algorithm:</label><br>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" id="rc4" name="algorithm" value="rc4" required>
-                    <label class="form-check-label" for="rc4">RC4</label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" id="rc5" name="algorithm" value="rc5" required>
-                    <label class="form-check-label" for="rc5">RC5</label>
+
+            <!-- Key File Input Section -->
+            <div id="keyFileInput" style="display: none;">
+                <div class="form-group">
+                    <label for="keyFile">Key File:</label>
+                    <div class="custom-file mb-3">
+                        <input type="file" class="custom-file-input" id="keyFile" name="keyFile">
+                        <label class="custom-file-label" for="keyFile">Choose key file</label>
+                    </div>
                 </div>
             </div>
+
             <div class="form-group">
-                <label>Operation:</label><br>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" id="encrypt" name="operation" value="encrypt" required>
-                    <label class="form-check-label" for="encrypt">Encrypt</label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" id="decrypt" name="operation" value="decrypt" required>
-                    <label class="form-check-label" for="decrypt">Decrypt</label>
-                </div>
+                <label for="algorithm">Algorithm:</label>
+                <select class="form-control" id="algorithm" name="algorithm" required>
+                    <option value="rc4">RC4</option>
+                    <option value="rc5">RC5</option>
+                </select>
             </div>
             <button type="submit" class="btn btn-primary">Submit</button>
         </form>
@@ -129,13 +158,13 @@
         }
 
         // RC5 encryption function
-        function rc5Encrypt($key, $text, $rounds = 12, $wordSize = 32) {
-            $modulus = 1 << $wordSize; // Modulus (2^wordSize)
-            $mask = $modulus - 1; // Mask for modulo operations
+        function rc5Encrypt($key, $plainText, $rounds = 12, $wordSize = 32) {
+            $modulus = 1 << $wordSize;
+            $mask = $modulus - 1;
 
             // Magic constants for RC5
-            $P = 0xB7E15163; 
-            $Q = 0x9E3779B9; 
+            $P = 0xB7E15163;
+            $Q = 0x9E3779B9;
 
             // Key preparation
             $keyWords = [];
@@ -143,13 +172,12 @@
                 $keyWords[] = unpack('V', substr($key . "\0\0\0\0", $i, 4))[1];
             }
 
-            $totalSubkeys = 2 * ($rounds + 1); // Number of subkeys
+            $totalSubkeys = 2 * ($rounds + 1);
             $subkeys = [$P];
             for ($i = 1; $i < $totalSubkeys; $i++) {
                 $subkeys[] = ($subkeys[$i - 1] + $Q) & $mask;
             }
 
-            // Key mixing
             $keyIndex = $subkeyIndex = $valueA = $valueB = 0;
             $keyLength = count($keyWords);
             for ($k = 0; $k < 3 * max($totalSubkeys, $keyLength); $k++) {
@@ -159,26 +187,21 @@
                 $keyIndex = ($keyIndex + 1) % $keyLength;
             }
 
-            // Divide the text into blocks
-            $text = str_pad($text, (strlen($text) + 7) & ~7, "\0");
-            $blocks = str_split($text, 8);
-            $encryptedText = "";
-
-            foreach ($blocks as $block) {
-                [$valueA, $valueB] = array_values(unpack('V2', $block));
-
-                // Encryption phase
+            $plainText = str_pad($plainText, ceil(strlen($plainText) / 8) * 8, "\0");
+            $encryptedText = '';
+            for ($i = 0; $i < strlen($plainText); $i += 8) {
+                list(, $valueA, $valueB) = unpack('V2', substr($plainText, $i, 8));
                 $valueA = ($valueA + $subkeys[0]) & $mask;
                 $valueB = ($valueB + $subkeys[1]) & $mask;
 
-                for ($i = 1; $i <= $rounds; $i++) {
+                for ($j = 1; $j <= $rounds; $j++) {
                     $valueA = ($valueA ^ $valueB);
                     $valueA = rotateLeft($valueA, $valueB % $wordSize, $wordSize);
-                    $valueA = ($valueA + $subkeys[2 * $i]) & $mask;
+                    $valueA = ($valueA + $subkeys[2 * $j]) & $mask;
 
                     $valueB = ($valueB ^ $valueA);
                     $valueB = rotateLeft($valueB, $valueA % $wordSize, $wordSize);
-                    $valueB = ($valueB + $subkeys[2 * $i + 1]) & $mask;
+                    $valueB = ($valueB + $subkeys[2 * $j + 1]) & $mask;
                 }
 
                 $encryptedText .= pack('V2', $valueA, $valueB);
@@ -258,44 +281,50 @@
         }
 
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $key = $_POST['key'];
-            if (empty($key)) {
-                $key = generateRandomKey(16);
+            // Get the key
+            $key = '';
+            if (isset($_FILES['keyFile']) && $_FILES['keyFile']['error'] == UPLOAD_ERR_OK) {
+                $key = trim(file_get_contents($_FILES['keyFile']['tmp_name']));
+            } else {
+                if ($_POST['operation'] === 'decrypt') {
+                    echo "<div class='mt-4'><p>No key file provided for decryption.</p></div>";
+                    exit;
+                } else {
+                    $key = generateRandomKey(16);
+                }
             }
 
-            $data = $_POST['data'];
-            if (isset($_FILES['file']) && $_FILES['file']['error'] == UPLOAD_ERR_OK) {
-                $data = file_get_contents($_FILES['file']['tmp_name']);
+            // Get the data
+            $data = '';
+            if ($_POST['inputMethod'] === 'text') {
+                $data = $_POST['data'];
+            } else {
+                if (isset($_FILES['cipherFile']) && $_FILES['cipherFile']['error'] == UPLOAD_ERR_OK) {
+                    $data = file_get_contents($_FILES['cipherFile']['tmp_name']);
+                } else {
+                    echo "<div class='mt-4'><p>No cipher file provided.</p></div>";
+                    exit;
+                }
             }
-
-            $algorithm = $_GET['algorithm'];
-            $operation = $_GET['operation'];
 
             if (!empty($data)) {
+                $algorithm = $_POST['algorithm'];
+                $operation = $_POST['operation'];
+
                 if ($algorithm == 'rc4') {
                     if ($operation == 'encrypt') {
                         $encryptedData = rc4Encrypt($key, $data);
-                        $result = "key: " . htmlspecialchars($key) . "\ncipher: " . bin2hex($encryptedData);
-                        echo "<div class='mt-4'><p>Key: " . htmlspecialchars($key) . "</p>";
-                        echo "<p>Encrypted: " . bin2hex($encryptedData) . "</p></div>";
+                        $cipherResult = bin2hex($encryptedData);
+                        echo "<div class='mt-4'><p>Algorithm: RC4</p>";
+                        echo "<p>Key: " . htmlspecialchars($key) . "</p>";
+                        echo "<p>Encrypted (hex): " . bin2hex($encryptedData) . "</p></div>";
                     } else {
-                        if (isset($_FILES['file']) && $_FILES['file']['error'] == UPLOAD_ERR_OK) {
-                            $fileContent = file_get_contents($_FILES['file']['tmp_name']);
-                            if (preg_match('/key:\s*(\S+)\ncipher:\s*(\S+)/', $fileContent, $matches)) {
-                                $key = $matches[1];
-                                $data = $matches[2];
-                            } else {
-                                echo "<div class='mt-4'><p>Invalid file format. Expected format:</p>";
-                                echo "<p>key: &lt;key&gt;</p>";
-                                echo "<p>cipher: &lt;cipher&gt;</p></div>";
-                                exit;
-                            }
-                        }
                         $decryptedData = rc4Decrypt($key, hex2bin($data));
-                        $result = "key: " . htmlspecialchars($key) . "\ncipher: " . htmlspecialchars($decryptedData);
-                        echo "<div class='mt-4'><p>Key: " . htmlspecialchars($key) . "</p>";
+                        $cipherResult = $decryptedData;
+                        echo "<div class='mt-4'><p>Algorithm: RC4</p>";
+                        echo "<p>Key: " . htmlspecialchars($key) . "</p>";
                         if (strlen($decryptedData) > 100) {
-                            echo "<p>Cipher is too long to display. Please download the result file.</p>";
+                            echo "<p>Decrypted text is too long to display. Please download the result file.</p>";
                         } else {
                             echo "<p>Decrypted: " . htmlspecialchars($decryptedData) . "</p>";
                         }
@@ -304,27 +333,17 @@
                 } else if ($algorithm == 'rc5') {
                     if ($operation == 'encrypt') {
                         $encryptedData = rc5Encrypt($key, $data);
-                        $result = "key: " . htmlspecialchars($key) . "\ncipher: " . bin2hex($encryptedData);
-                        echo "<div class='mt-4'><p>Key: " . htmlspecialchars($key) . "</p>";
-                        echo "<p>Encrypted: " . bin2hex($encryptedData) . "</p></div>";
+                        $cipherResult = bin2hex($encryptedData);
+                        echo "<div class='mt-4'><p>Algorithm: RC5</p>";
+                        echo "<p>Key: " . htmlspecialchars($key) . "</p>";
+                        echo "<p>Encrypted (hex): " . bin2hex($encryptedData) . "</p></div>";
                     } else {
-                        if (isset($_FILES['file']) && $_FILES['file']['error'] == UPLOAD_ERR_OK) {
-                            $fileContent = file_get_contents($_FILES['file']['tmp_name']);
-                            if (preg_match('/key:\s*(\S+)\ncipher:\s*(\S+)/', $fileContent, $matches)) {
-                                $key = $matches[1];
-                                $data = $matches[2];
-                            } else {
-                                echo "<div class='mt-4'><p>Invalid file format. Expected format:</p>";
-                                echo "<p>key: &lt;key&gt;</p>";
-                                echo "<p>cipher: &lt;cipher&gt;</p></div>";
-                                exit;
-                            }
-                        }
                         $decryptedData = rc5Decrypt($key, hex2bin($data));
-                        $result = "key: " . htmlspecialchars($key) . "\ncipher: " . htmlspecialchars($decryptedData);
-                        echo "<div class='mt-4'><p>Key: " . htmlspecialchars($key) . "</p>";
+                        $cipherResult = $decryptedData;
+                        echo "<div class='mt-4'><p>Algorithm: RC5</p>";
+                        echo "<p>Key: " . htmlspecialchars($key) . "</p>";
                         if (strlen($decryptedData) > 100) {
-                            echo "<p>Cipher is too long to display. Please download the result file.</p>";
+                            echo "<p>Decrypted text is too long to display. Please download the result file.</p>";
                         } else {
                             echo "<p>Decrypted: " . htmlspecialchars($decryptedData) . "</p>";
                         }
@@ -332,10 +351,13 @@
                     }
                 }
 
-                // Create a downloadable file with the result
-                $filename = "result.txt";
-                file_put_contents($filename, $result);
-                echo "<a href='$filename' class='btn btn-success mt-3' download>Download Result</a>";
+                // Create downloadable result files
+                $keyFilename = "key.txt";
+                $cipherFilename = "cipher.txt";
+                file_put_contents($keyFilename, $key);
+                file_put_contents($cipherFilename, $cipherResult);
+                echo "<a href='$keyFilename' class='btn btn-success mt-3' download>Download Key</a>";
+                echo "<a href='$cipherFilename' class='btn btn-success mt-3 ml-2' download>Download Cipher</a>";
             } else {
                 echo "<div class='mt-4'><p>No data provided.</p></div>";
             }
