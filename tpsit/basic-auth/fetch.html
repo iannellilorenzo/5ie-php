@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Auth Fetch</title>
+</head>
+<body>
+    <script>
+        function fetchPost() {
+            let url = 'http://localhost/5IE/tpsit/basic-auth/';
+            let username = 'Mario';
+            let password = 'Rossi';
+
+            let headers = new Headers();
+
+            headers.append('Authorization', 'Basic ' + btoa(username + ":" + password));
+
+            fetch(url, {
+                method: 'POST',
+                headers: headers
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(text => console.log(text))
+            .catch(error => console.error('There was a problem with the fetch operation:', error));
+        }
+
+        fetchPost();
+    </script>
+</body>
+</html>
