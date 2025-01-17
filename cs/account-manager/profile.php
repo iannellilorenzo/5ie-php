@@ -70,91 +70,191 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Profile</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Profile - Lockr</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
     <link rel="icon" href="assets/images/logo_favicon.png" type="image/x-icon">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        .container {
-            margin-top: 50px;
+        body {
+            background: linear-gradient(135deg, #f6f9fc, #edf1f9, #e9ecf5);
+            min-height: 100vh;
         }
-        .form-group {
-            margin-bottom: 1.5rem;
+        .navbar {
+            background: linear-gradient(to right, rgba(106, 17, 203, 0.9), rgba(37, 117, 252, 0.9)) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+        .navbar-light .navbar-brand,
+        .navbar-light .nav-link {
+            color: white !important;
         }
         .card {
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        .form-control {
+            border-radius: 8px;
+            padding: 12px 15px;
+            border: 2px solid #eee;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus {
+            border-color: #6a11cb;
+            box-shadow: none;
         }
         .btn-primary {
-            background-color: #007bff;
-            border-color: #007bff;
+            background: linear-gradient(45deg, #6a11cb, #2575fc);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
         }
         .btn-primary:hover {
-            background-color: #0056b3;
-            border-color: #004085;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(106,17,203,0.4);
+        }
+        .btn-secondary {
+            background: linear-gradient(45deg, #3a3a3a, #2c2c2c);
+            border: none;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: linear-gradient(45deg, #2c2c2c, #1f1f1f);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .input-group-text {
+            background: transparent;
+            border: 2px solid #eee;
+            border-left: none;
+        }
+        .form-control:focus + .input-group-text {
+            border-color: #6a11cb;
+        }
+        .btn-outline-gradient {
+            border: 2px solid #eee;
+            color: #6a11cb;
+            background: transparent;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-gradient:hover {
+            background: linear-gradient(45deg, #6a11cb20, #2575fc20);
+            border-color: #6a11cb;
+            color: #6a11cb;
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <a class="navbar-brand" href="#">Lockr</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ml-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="homepage.php">Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="logout.php">Logout</a>
-                </li>
-            </ul>
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="homepage.php">
+                <img src="assets/images/logo_favicon.png" height="30" class="me-2">
+                <span class="fw-bold">Lockr</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="homepage.php">
+                            <i class="fas fa-home me-1"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_accounts.php">
+                            <i class="fas fa-key me-1"></i> View Accounts
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="logout.php">
+                            <i class="fas fa-sign-out-alt me-1"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </nav>
 
-    <div class="container">
-        <div class="row justify-content-center align-items-center" style="height:80vh">
-            <div class="col-6">
+    <div class="container" style="margin-top: 6rem;">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-6">
                 <div class="card">
-                    <div class="card-body">
-                        <h3 class="card-title text-center">Profile</h3>
+                    <div class="card-body p-4">
+                        <div class="text-center mb-4">
+                            <div class="rounded-circle bg-gradient p-3 d-inline-block mb-3" style="background: linear-gradient(45deg, #6a11cb20, #2575fc20);">
+                                <i class="fas fa-user fa-2x text-primary"></i>
+                            </div>
+                            <h3 class="fw-bold">Profile Settings</h3>
+                            <p class="text-muted">Manage your account information</p>
+                        </div>
+
                         <?php if (isset($message)): ?>
-                            <div class="alert alert-info">
+                            <div class="alert alert-info alert-dismissible fade show">
                                 <?php echo htmlspecialchars($message); ?>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                             </div>
                         <?php endif; ?>
+
                         <form action="profile.php" method="post">
-                            <div class="form-group">
-                                <label for="username">Username</label>
-                                <input type="text" class="form-control" id="username" name="username" value="<?php echo htmlspecialchars($username); ?>" readonly>
+                            <div class="mb-3">
+                                <label class="form-label">Username</label>
+                                <input type="text" class="form-control bg-light" value="<?php echo htmlspecialchars($username); ?>" readonly>
                             </div>
-                            <div class="form-group">
-                                <label for="email">Email address</label>
-                                <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($email); ?>" pattern="^[A-Za-z0-9._%+-]{1,60}@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" required>
+
+                            <div class="mb-3">
+                                <label class="form-label">Email address</label>
+                                <input type="email" class="form-control" name="email" value="<?php echo htmlspecialchars($email); ?>" pattern="^[A-Za-z0-9._%+-]{1,60}@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" required>
                             </div>
-                            <div class="form-group">
-                                <label for="phone_number">Phone Number</label>
-                                <input type="text" class="form-control" id="phone_number" name="phone_number" value="<?php echo htmlspecialchars($phone_number); ?>" placeholder="+1 123 456 7890" pattern="^\+?(\d{1,3})?[-.\s]?(\(?\d{1,4}\)?)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$" required>
+
+                            <div class="mb-3">
+                                <label class="form-label">Phone Number</label>
+                                <input type="text" class="form-control" name="phone_number" value="<?php echo htmlspecialchars($phone_number); ?>" placeholder="+1 123 456 7890" pattern="^\+?(\d{1,3})?[-.\s]?(\(?\d{1,4}\)?)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$" required>
                             </div>
-                            <div class="form-group">
-                                <label for="first_name">First Name</label>
-                                <input type="text" class="form-control" id="first_name" name="first_name" value="<?php echo htmlspecialchars($first_name); ?>" pattern="^[A-Za-z' -]{1,35}$" required>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">First Name</label>
+                                    <input type="text" class="form-control" name="first_name" value="<?php echo htmlspecialchars($first_name); ?>" pattern="^[A-Za-z' -]{1,35}$" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Last Name</label>
+                                    <input type="text" class="form-control" name="last_name" value="<?php echo htmlspecialchars($last_name); ?>" pattern="^[A-Za-z' -]{1,35}$" required>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label for="last_name">Last Name</label>
-                                <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo htmlspecialchars($last_name); ?>" pattern="^[A-Za-z' -]{1,35}$" required>
+
+                            <button type="button" class="btn btn-secondary w-100 mb-3" id="changePasswordButton">
+                                <i class="fas fa-key me-2"></i>Change Password
+                            </button>
+
+                            <div id="passwordGroup" style="display: none;">
+                                <div class="mb-3">
+                                    <label class="form-label">New Password</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" name="password" id="password" placeholder="New Password" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$">
+                                        <button class="btn btn-outline-gradient" type="button" onclick="togglePassword('password')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label">Confirm New Password</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" name="confirm_password" id="confirm_password" placeholder="Confirm New Password" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$">
+                                        <button class="btn btn-outline-gradient" type="button" onclick="togglePassword('confirm_password')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <button type="button" class="btn btn-secondary btn-block mb-3" id="changePasswordButton">Change Password</button>
-                            <div class="form-group" id="passwordGroup" style="display: none;">
-                                <label for="password">New Password</label>
-                                <input type="password" class="form-control" id="password" name="password" placeholder="New Password" onpaste="return false;" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$">
-                            </div>
-                            <div class="form-group" id="confirmPasswordGroup" style="display: none;">
-                                <label for="confirm_password">Confirm New Password</label>
-                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Confirm New Password" onpaste="return false;" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$">
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-block">Update Profile</button>
+
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-save me-2"></i>Update Profile
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -162,21 +262,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.getElementById('changePasswordButton').addEventListener('click', function () {
+        document.getElementById('changePasswordButton').addEventListener('click', function() {
             const passwordGroup = document.getElementById('passwordGroup');
-            const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
-            if (passwordGroup.style.display === 'none') {
-                passwordGroup.style.display = 'block';
-                confirmPasswordGroup.style.display = 'block';
-            } else {
-                passwordGroup.style.display = 'none';
-                confirmPasswordGroup.style.display = 'none';
-            }
+            passwordGroup.style.display = passwordGroup.style.display === 'none' ? 'block' : 'none';
         });
+
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = event.currentTarget.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
     </script>
 </body>
 </html>

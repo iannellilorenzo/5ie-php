@@ -56,50 +56,121 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Sign In</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign In - Lockr</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
     <link rel="icon" href="assets/images/logo_favicon.png" type="image/x-icon">
+    <style>
+        body {
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            min-height: 100vh;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .form-control {
+            border-radius: 8px;
+            padding: 10px 15px;
+            border: 2px solid #eee;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus {
+            border-color: #6a11cb;
+            box-shadow: none;
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #6a11cb, #2575fc);
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(106,17,203,0.4);
+        }
+        .social-login {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        .social-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #eee;
+            color: #666;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        .social-btn:hover {
+            transform: translateY(-2px);
+            color: #6a11cb;
+            border-color: #6a11cb;
+        }
+    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="row justify-content-center align-items-center" style="height:100vh">
-            <div class="col-4">
+<body class="d-flex align-items-center">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-6 col-xl-5">
                 <div class="card">
-                    <div class="card-body">
-                        <h3 class="card-title text-center">Sign In</h3>
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <img src="assets/images/logo_favicon.png" height="60" class="mb-3">
+                            <h2 class="fw-bold">Welcome Back</h2>
+                            <p class="text-muted">Sign in to access your vault</p>
+                        </div>
+
                         <?php if (isset($_GET['message'])): ?>
                             <div class="alert alert-info">
                                 <?php echo htmlspecialchars($_GET['message']); ?>
                             </div>
                         <?php endif; ?>
+
+                        <div class="social-login mb-4">
+                            <a href="#" class="social-btn"><i class="fab fa-google"></i></a>
+                            <a href="#" class="social-btn"><i class="fab fa-facebook-f"></i></a>
+                            <a href="#" class="social-btn"><i class="fab fa-apple"></i></a>
+                        </div>
+
+                        <div class="text-center mb-4">
+                            <span class="text-muted">or sign in with email</span>
+                        </div>
+
                         <form action="sign_in.php" method="post">
-                            <div class="form-group">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="username" name="username" placeholder="Username" pattern="^[A-Za-z0-9_.-]{1,30}$" required>
                                 <label for="username">Username</label>
-                                <input type="text" class="form-control" id="username" name="username" placeholder="Enter username" pattern="^[A-Za-z0-9_.-]{1,30}$" required>
                             </div>
-                            <div class="form-group">
+
+                            <div class="form-floating mb-4">
+                                <input type="password" class="form-control" id="password" name="password" placeholder="Password" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$" required>
                                 <label for="password">Password</label>
-                                <div class="input-group">
-                                    <input type="password" class="form-control" id="password" name="password" placeholder="Password" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$" required>
-                                    <div class="input-group-append">
-                                        <span class="input-group-text" onclick="togglePasswordVisibility()">
-                                            <i class="fas fa-eye" id="togglePasswordIcon"></i>
-                                        </span>
-                                    </div>
+                                <div class="position-absolute end-0 top-50 translate-middle-y pe-3">
+                                    <i class="fas fa-eye text-muted" id="togglePasswordIcon" style="cursor: pointer;" onclick="togglePasswordVisibility()"></i>
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+
+                            <button type="submit" class="btn btn-primary w-100 mb-3">Sign In</button>
+
+                            <div class="text-center">
+                                <span class="text-muted">Don't have an account?</span>
+                                <a href="sign_up.php" class="text-decoration-none ms-1">Sign Up</a>
+                            </div>
                         </form>
-                        <div class="text-center mt-3">
-                            <p>Don't have an account? <a href="sign_up.php">Register here</a></p>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function togglePasswordVisibility() {
             const passwordField = document.getElementById('password');

@@ -84,68 +84,150 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Sign Up</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign Up - Lockr</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
     <link rel="icon" href="assets/images/logo_favicon.png" type="image/x-icon">
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            min-height: 100vh;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .form-control {
+            border-radius: 8px;
+            padding: 10px 15px;
+            border: 2px solid #eee;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus {
+            border-color: #6a11cb;
+            box-shadow: none;
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #6a11cb, #2575fc);
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(106,17,203,0.4);
+        }
+        .social-login {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        .social-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #eee;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+        .social-btn:hover {
+            transform: translateY(-2px);
+            color: #6a11cb;
+            border-color: #6a11cb;
+        }
+    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="row justify-content-center align-items-center" style="height:100vh">
-            <div class="col-4">
+<body class="d-flex align-items-center">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-6 col-xl-5">
                 <div class="card">
-                    <div class="card-body">
-                        <h3 class="card-title text-center">Sign Up</h3>
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <img src="assets/images/logo_favicon.png" height="60" class="mb-3">
+                            <h2 class="fw-bold">Create Account</h2>
+                            <p class="text-muted">Join the most secure password manager</p>
+                        </div>
+
                         <?php if (isset($message)): ?>
                             <div class="alert alert-info">
                                 <?php echo htmlspecialchars($message); ?>
                             </div>
                         <?php endif; ?>
+
+                        <div class="social-login mb-4">
+                            <a href="#" class="social-btn text-decoration-none"><i class="fab fa-google"></i></a>
+                            <a href="#" class="social-btn text-decoration-none"><i class="fab fa-facebook-f"></i></a>
+                            <a href="#" class="social-btn text-decoration-none"><i class="fab fa-apple"></i></a>
+                        </div>
+
+                        <div class="text-center mb-4">
+                            <span class="text-muted">or sign up with email</span>
+                        </div>
+
                         <form action="sign_up.php" method="post">
-                            <div class="form-group">
-                                <label for="username">Username</label>
-                                <input type="text" class="form-control" id="username" name="username" placeholder="Enter username" patter="^[A-Za-z0-9_.-]{1,30}$" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="email">Email</label>
-                                <input type="email" class="form-control" id="email" name="email" placeholder="Enter email" pattern="^[A-Za-z0-9._%+-]{1,60}@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="password">Password</label>
-                                <div class="input-group">
-                                    <input type="password" class="form-control" id="password" name="password" placeholder="Password" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$" required>
-                                    <div class="input-group-append">
-                                        <span class="input-group-text" onclick="togglePasswordVisibility()">
-                                            <i class="fas fa-eye" id="togglePasswordIcon"></i>
-                                        </span>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="first_name" name="first_name" placeholder="First Name" pattern="^[A-Za-z' -]{1,35}$">
+                                        <label for="first_name">First Name</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Last Name" pattern="^[A-Za-z' -]{1,35}$">
+                                        <label for="last_name">Last Name</label>
                                     </div>
                                 </div>
                             </div>
-                            <div class="form-group">
+
+                            <div class="form-floating mb-3 mt-3">
+                                <input type="text" class="form-control" id="username" name="username" placeholder="Username" pattern="^[A-Za-z0-9_.-]{1,30}$" required>
+                                <label for="username">Username</label>
+                            </div>
+
+                            <div class="form-floating mb-3">
+                                <input type="email" class="form-control" id="email" name="email" placeholder="Email" pattern="^[A-Za-z0-9._%+-]{1,60}@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" required>
+                                <label for="email">Email</label>
+                            </div>
+
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="phone_number" name="phone_number" placeholder="Phone Number" pattern="^\+?(\d{1,3})?[-.\s]?(\(?\d{1,4}\)?)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$" required>
                                 <label for="phone_number">Phone Number</label>
-                                <input type="text" class="form-control" id="phone_number" name="phone_number" placeholder="+1 123 456 7890" pattern="^\+?(\d{1,3})?[-.\s]?(\(?\d{1,4}\)?)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$" required>
                             </div>
-                            <div class="form-group">
-                                <label for="first_name">First Name</label>
-                                <input type="text" class="form-control" id="first_name" name="first_name" placeholder="Enter first name" pattern="^[A-Za-z' -]{1,35}$">
+
+                            <div class="form-floating mb-4">
+                                <input type="password" class="form-control" id="password" name="password" placeholder="Password" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$" required>
+                                <label for="password">Password</label>
+                                <div class="position-absolute end-0 top-50 translate-middle-y pe-3">
+                                    <i class="fas fa-eye text-muted" id="togglePasswordIcon" style="cursor: pointer;" onclick="togglePasswordVisibility()"></i>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label for="last_name">Last Name</label>
-                                <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Enter last name" pattern="^[A-Za-z' -]{1,35}$">
+
+                            <div class="mb-4 d-flex justify-content-center">
+                                <div class="cf-turnstile" data-sitekey="<?php echo $turnstile_site_key; ?>"></div>
                             </div>
-                            <div class="cf-turnstile" data-sitekey="<?php echo $turnstile_site_key; ?>"></div>
-                            <button type="submit" class="btn btn-primary btn-block">Sign Up</button>
+
+                            <button type="submit" class="btn btn-primary w-100 mb-3">Create Account</button>
+
+                            <div class="text-center">
+                                <span class="text-muted">Already have an account?</span>
+                                <a href="sign_in.php" class="text-decoration-none ms-1">Sign In</a>
+                            </div>
                         </form>
-                        <div class="text-center mt-3">
-                            <a href="sign_in.php">Already have an account? Sign In</a>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function togglePasswordVisibility() {
             const passwordField = document.getElementById('password');

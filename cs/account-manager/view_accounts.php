@@ -9,7 +9,9 @@ if (!isset($_SESSION['username']) || !isset($_SESSION['token'])) {
 
 $username = $_SESSION['username'];
 $message = '';
+$accounts = [];
 
+// Handle secret key submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['secret_key'])) {
     $secret_key = implode('', array_map('htmlspecialchars', $_POST['secret_key']));
 
@@ -17,14 +19,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['secret_key'])) {
         $conn = new PDO("mysql:host=$server_name;dbname=$db_name", $db_username, $db_password);
         $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        // Retrieve the user's hashed secret key
+        // Verify secret key
         $stmt = $conn->prepare("SELECT secret_key FROM users WHERE username = :username");
         $stmt->bindParam(':username', $username);
         $stmt->execute();
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($secret_key, $user['secret_key'])) {
-            // Retrieve the user's accounts
+            // Fetch accounts after successful verification
             $stmt = $conn->prepare("SELECT * FROM accounts WHERE user_reference = (SELECT email FROM users WHERE username = :username)");
             $stmt->bindParam(':username', $username);
             $stmt->execute();
@@ -118,261 +120,295 @@ function decrypt_password($encrypted_password, $secret_key) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>View Accounts</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>View Accounts - Lockr</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
     <link rel="icon" href="assets/images/logo_favicon.png" type="image/x-icon">
     <style>
+        body {
+            background: linear-gradient(135deg, #f6f9fc, #edf1f9, #e9ecf5);
+            min-height: 100vh;
+        }
+        .navbar {
+            background: linear-gradient(to right, rgba(106, 17, 203, 0.9), rgba(37, 117, 252, 0.9)) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+        .navbar-light .navbar-brand,
+        .navbar-light .nav-link {
+            color: white !important;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            background: white;
+            overflow: hidden;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            background: linear-gradient(45deg, #6a11cb20, #2575fc20);
+            border: none;
+            padding: 1.5rem;
+        }
         .otp-input {
-            width: 2rem;
-            height: 2rem;
+            width: 3rem;
+            height: 3rem;
             text-align: center;
             font-size: 1.5rem;
-            margin: 0.2rem;
+            margin: 0.3rem;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            transition: all 0.3s ease;
         }
-        .container {
-            padding-bottom: 2rem;
+        .otp-input:focus {
+            border-color: #6a11cb;
+            box-shadow: none;
+            outline: none;
         }
-        .no-paste {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
+        .btn-primary {
+            background: linear-gradient(45deg, #6a11cb, #2575fc);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
         }
-        .modal-dialog-centered {
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(106,17,203,0.4);
+        }
+        .btn-warning {
+            background: linear-gradient(45deg, #f6d365, #fda085);
+            border: none;
+            color: white;
+        }
+        .btn-danger {
+            background: linear-gradient(45deg, #ff6b6b, #ee5253);
+            border: none;
+        }
+        .modal-content {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .modal-header {
+            background: linear-gradient(45deg, #6a11cb20, #2575fc20);
+            border: none;
+        }
+        .account-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(45deg, #6a11cb20, #2575fc20);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: calc(100% - 1rem);
+            margin-bottom: 1rem;
+        }
+        .account-icon i {
+            font-size: 1.5rem;
+            color: #6a11cb;
+        }
+        .password-toggle {
+            cursor: pointer;
+            color: #6a11cb;
+            transition: all 0.3s ease;
+        }
+        .password-toggle:hover {
+            color: #2575fc;
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <a class="navbar-brand" href="#">Lockr</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ml-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="homepage.php">Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="profile.php">Profile</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="logout.php">Logout</a>
-                </li>
-            </ul>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="homepage.php">
+                <img src="assets/images/logo_favicon.png" height="30" class="me-2">
+                <span class="fw-bold">Lockr</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="homepage.php">
+                            <i class="fas fa-home me-1"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="profile.php">
+                            <i class="fas fa-user me-1"></i> Profile
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="logout.php">
+                            <i class="fas fa-sign-out-alt me-1"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </nav>
 
-    <div class="container mt-4">
-        <?php if ($message): ?>
-            <div class="alert alert-info text-center">
-                <?php echo htmlspecialchars($message); ?>
+    <!-- Main Content -->
+    <div class="container" style="margin-top: 6rem;">
+        <!-- Header with Search and Controls -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">Your Accounts</h2>
+            <?php if (!empty($accounts)): ?>
+            <div class="d-flex gap-3">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="fas fa-search text-muted"></i>
+                    </span>
+                    <input type="text" class="form-control border-start-0" id="searchAccounts" placeholder="Search accounts...">
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-outline-primary active" id="gridView">
+                        <i class="fas fa-th-large"></i>
+                    </button>
+                    <button class="btn btn-outline-primary" id="listView">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
             </div>
-            <script>
-                setTimeout(function() {
-                    window.location.href = 'view_accounts.php';
-                }, 2000);
-            </script>
+            <?php endif; ?>
+        </div>
+
+        <?php if (empty($accounts)): ?>
+            <div class="text-center py-5">
+                <div class="feature-icon mb-4">
+                    <i class="fas fa-folder-open fa-3x text-muted"></i>
+                </div>
+                <h3>No Accounts Found</h3>
+                <p class="text-muted mb-4">Start securing your accounts by adding your first one.</p>
+                <a href="add_account.php" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Add New Account
+                </a>
+            </div>
         <?php else: ?>
-            <h2 class="text-center">Your Accounts</h2>
-            <?php if (!isset($accounts)): ?>
-                <div class="row justify-content-center align-items-center" style="height:80vh">
-                    <div class="col-6">
-                        <div class="card">
-                            <div class="card-body">
-                                <h3 class="card-title text-center">Enter Secret Key</h3>
-                                <form action="view_accounts.php" method="post">
-                                    <div class="form-group text-center">
-                                        <label for="secret_key">Secret Key</label>
-                                        <div class="form-group text-center">
-                                            <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
-                                            <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
-                                            <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
-                                            <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
-                                            <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
-                                            <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
-                                        </div>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary btn-block">Submit</button>
-                                </form>
+            <!-- Existing accounts grid/list view -->
+            <div class="row g-4" id="accountsContainer">
+                <?php foreach ($accounts as $account): ?>
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex align-items-center">
+                            <div class="account-icon me-3">
+                                <i class="fas fa-lock"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0"><?php echo htmlspecialchars($account['website']); ?></h5>
+                                <small class="text-muted"><?php echo htmlspecialchars($account['username']); ?></small>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Password</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" value="********" readonly>
+                                    <button class="btn btn-outline-primary" onclick="togglePassword(this)">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-primary" onclick="copyPassword('<?php echo htmlspecialchars($account['id']); ?>')">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end gap-2">
+                                <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editModal<?php echo $account['id']; ?>">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal<?php echo $account['id']; ?>">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
-            <?php else: ?>
-                <div class="row">
-                    <?php if (count($accounts) > 0): ?>
-                        <?php foreach ($accounts as $account): ?>
-                            <div class="col-md-4 mb-4">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <h5 class="card-title">Username: <?php echo htmlspecialchars($account['username']); ?></h5>
-                                        <p class="card-text">Email: <?php echo htmlspecialchars($account['email']); ?></p>
-                                        <button class="btn btn-primary" data-toggle="modal" data-target="#accountModal<?php echo $account['id']; ?>">See All</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Account Details Modal -->
-                            <div class="modal fade" id="accountModal<?php echo $account['id']; ?>" tabindex="-1" role="dialog" aria-labelledby="accountModalLabel<?php echo $account['id']; ?>" aria-hidden="true">
-                                <div class="modal-dialog modal-dialog-centered" role="document">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title" id="accountModalLabel<?php echo $account['id']; ?>">Account Details</h5>
-                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                <span aria-hidden="true">&times;</span>
-                                            </button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <p><strong>Username:</strong> <?php echo htmlspecialchars($account['username']); ?></p>
-                                            <p><strong>Email:</strong> <?php echo htmlspecialchars($account['email']); ?></p>
-                                            <p><strong>Password:</strong> <span id="password<?php echo $account['id']; ?>" class="password-field">********</span> <a href="#" class="toggle-password" onclick="togglePasswordVisibility(this, '<?php echo decrypt_password($account['password'], $secret_key); ?>')">Show</a></p>
-                                            <p><strong>Description:</strong> <?php echo htmlspecialchars($account['description']); ?></p>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-danger" onclick="showDeleteModal('<?php echo $account['id']; ?>', '<?php echo $account['username']; ?>')">Delete</button>
-                                            <button type="button" class="btn btn-warning" onclick="showUpdateModal('<?php echo $account['id']; ?>', '<?php echo htmlspecialchars($account['username']); ?>', '<?php echo htmlspecialchars($account['email']); ?>', '<?php echo htmlspecialchars($account['description']); ?>')">Update</button>
-                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Delete Confirmation Modal -->
-                            <div class="modal fade" id="deleteModal<?php echo $account['id']; ?>" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel<?php echo $account['id']; ?>" aria-hidden="true">
-                                <div class="modal-dialog modal-dialog-centered" role="document">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title" id="deleteModalLabel<?php echo $account['id']; ?>">Confirm Deletion</h5>
-                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="hideDeleteModal('<?php echo $account['id']; ?>')">
-                                                <span aria-hidden="true">&times;</span>
-                                            </button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <p>Type the username <strong><?php echo htmlspecialchars($account['username']); ?></strong> to confirm deletion:</p>
-                                            <form action="view_accounts.php" method="post" onsubmit="return confirmDeletion('<?php echo $account['username']; ?>')">
-                                                <input type="hidden" name="delete_account_id" value="<?php echo $account['id']; ?>">
-                                                <div class="form-group">
-                                                    <input type="text" name="confirm_username" class="form-control no-paste" placeholder="Type username to confirm" required>
-                                                </div>
-                                                <button type="submit" class="btn btn-danger">Delete</button>
-                                                <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="hideDeleteModal('<?php echo $account['id']; ?>')">Cancel</button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Update Account Modal -->
-                            <div class="modal fade" id="updateModal<?php echo $account['id']; ?>" tabindex="-1" role="dialog" aria-labelledby="updateModalLabel<?php echo $account['id']; ?>" aria-hidden="true">
-                                <div class="modal-dialog modal-dialog-centered" role="document">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title" id="updateModalLabel<?php echo $account['id']; ?>">Update Account</h5>
-                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="hideUpdateModal('<?php echo $account['id']; ?>')">
-                                                <span aria-hidden="true">&times;</span>
-                                            </button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <form action="view_accounts.php" method="post">
-                                                <input type="hidden" name="update_account_id" value="<?php echo $account['id']; ?>">
-                                                <div class="form-group">
-                                                    <label for="new_username">New Username</label>
-                                                    <input type="text" name="new_username" class="form-control" id="new_username<?php echo $account['id']; ?>" patter="^[A-Za-z0-9_.-]{1,30}$" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="new_email">New Email</label>
-                                                    <input type="email" name="new_email" class="form-control" id="new_email<?php echo $account['id']; ?>" pattern="^[A-Za-z0-9._%+-]{1,60}@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="new_password">New Password</label>
-                                                    <input type="password" name="new_password" class="form-control" id="new_password<?php echo $account['id']; ?>" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="new_description">New Description</label>
-                                                    <textarea name="new_description" class="form-control" id="new_description<?php echo $account['id']; ?>" required></textarea>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="secret_key">Secret Key</label>
-                                                    <div class="form-group text-center">
-                                                        <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
-                                                        <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
-                                                        <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
-                                                        <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
-                                                        <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
-                                                        <input type="password" class="otp-input" maxlength="1" name="secret_key[]" required>
-                                                    </div>
-                                                </div>
-                                                <button type="submit" class="btn btn-warning">Update</button>
-                                                <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="hideUpdateModal('<?php echo $account['id']; ?>')">Cancel</button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <div class="col-12">
-                            <div class="alert alert-info text-center">No accounts found.</div>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
         <?php endif; ?>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- Secret Key Modal -->
+    <div class="modal fade" id="secretKeyModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Enter Your Secret Key</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="secretKeyForm" method="post">
+                        <div class="d-flex justify-content-center mb-4">
+                            <?php for($i = 0; $i < 6; $i++): ?>
+                            <input type="password" class="otp-input no-paste" name="secret_key[]" maxlength="1" required>
+                            <?php endfor; ?>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Submit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function togglePasswordVisibility(link, password) {
-            const passwordField = link.previousElementSibling;
-            if (link.textContent === 'Show') {
-                passwordField.textContent = password;
-                link.textContent = 'Hide';
+        // Toggle password visibility
+        function togglePassword(button) {
+            const input = button.parentElement.querySelector('input');
+            const icon = button.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
             } else {
-                passwordField.textContent = '********';
-                link.textContent = 'Show';
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
             }
         }
 
-        function showDeleteModal(accountId, username) {
-            $('#accountModal' + accountId).modal('hide');
-            $('#deleteModal' + accountId).modal('show');
+        // Copy password to clipboard
+        function copyPassword(accountId) {
+            // Implementation here
         }
 
-        function hideDeleteModal(accountId) {
-            $('#deleteModal' + accountId).modal('hide');
-            $('#accountModal' + accountId).modal('show');
-        }
+        // Toggle view (grid/list)
+        document.getElementById('listView').addEventListener('click', function() {
+            document.getElementById('accountsContainer').classList.remove('row');
+            document.querySelectorAll('#accountsContainer > div').forEach(div => {
+                div.className = 'mb-4';
+            });
+            this.classList.add('active');
+            document.getElementById('gridView').classList.remove('active');
+        });
 
-        function showUpdateModal(accountId, username, email, description) {
-            $('#accountModal' + accountId).modal('hide');
-            $('#updateModal' + accountId).modal('show');
-            document.getElementById('new_username' + accountId).value = username;
-            document.getElementById('new_email' + accountId).value = email;
-            document.getElementById('new_description' + accountId).value = description;
-        }
+        document.getElementById('gridView').addEventListener('click', function() {
+            document.getElementById('accountsContainer').classList.add('row');
+            document.querySelectorAll('#accountsContainer > div').forEach(div => {
+                div.className = 'col-12 col-md-6 col-lg-4';
+            });
+            this.classList.add('active');
+            document.getElementById('listView').classList.remove('active');
+        });
 
-        function hideUpdateModal(accountId) {
-            $('#updateModal' + accountId).modal('hide');
-            $('#accountModal' + accountId).modal('show');
-        }
-
-        function confirmDeletion(username) {
-            const input = document.querySelector('input[name="confirm_username"]');
-            if (input.value !== username) {
-                alert('Username confirmation does not match.');
-                return false;
-            }
-            return true;
-        }
+        // Search functionality
+        document.getElementById('searchAccounts').addEventListener('input', function(e) {
+            const search = e.target.value.toLowerCase();
+            document.querySelectorAll('#accountsContainer .card').forEach(card => {
+                const website = card.querySelector('h5').textContent.toLowerCase();
+                const username = card.querySelector('small').textContent.toLowerCase();
+                card.closest('.col-12').style.display = 
+                    website.includes(search) || username.includes(search) ? '' : 'none';
+            });
+        });
 
         document.querySelectorAll('.otp-input').forEach((input, index, inputs) => {
             input.addEventListener('input', () => {
@@ -384,12 +420,6 @@ function decrypt_password($encrypted_password, $secret_key) {
                 if (e.key === 'Backspace' && input.value.length === 0 && index > 0) {
                     inputs[index - 1].focus();
                 }
-            });
-        });
-
-        document.querySelectorAll('.no-paste').forEach(input => {
-            input.addEventListener('paste', (e) => {
-                e.preventDefault();
             });
         });
     </script>
