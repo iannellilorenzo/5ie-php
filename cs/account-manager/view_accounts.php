@@ -7,10 +7,28 @@ if (!isset($_SESSION['username']) || !isset($_SESSION['token'])) {
     exit();
 }
 
+if (isset($_SESSION['message'])) {
+    $message = $_SESSION['message'];
+    unset($_SESSION['message']);
+}
+
 $username = $_SESSION['username'];
 $message = '';
-$accounts = [];
 $verified = false;
+
+function fetchAccounts($conn, $user_reference, $secret_key) {
+    $stmt = $conn->prepare("SELECT * FROM accounts WHERE user_reference = :user_reference");
+    $stmt->bindParam(':user_reference', $user_reference);
+    $stmt->execute();
+    $accounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Decrypt passwords
+    foreach ($accounts as &$account) {
+        $account['password'] = decrypt_password($account['password'], $secret_key);
+    }
+    
+    return $accounts;
+}
 
 // Handle secret key submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['secret_key'])) {
@@ -21,19 +39,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['secret_key'])) {
         $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         // Verify secret key
-        $stmt = $conn->prepare("SELECT secret_key FROM users WHERE username = :username");
+        $stmt = $conn->prepare("SELECT secret_key, email FROM users WHERE username = :username");
         $stmt->bindParam(':username', $username);
         $stmt->execute();
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($secret_key, $user['secret_key'])) {
             $verified = true;
-
-            // Fetch accounts after successful verification
-            $stmt = $conn->prepare("SELECT * FROM accounts WHERE user_reference = (SELECT email FROM users WHERE username = :username)");
-            $stmt->bindParam(':username', $username);
-            $stmt->execute();
-            $accounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $accounts = fetchAccounts($conn, $user['email'], $secret_key);
         } else {
             $message = "Invalid secret key.";
         }
@@ -51,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account_id']))
         $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         // Retrieve the account to delete
-        $stmt = $conn->prepare("SELECT username FROM accounts WHERE id = :id");
+        $stmt = $conn->prepare("SELECT username, user_reference FROM accounts WHERE id = :id");
         $stmt->bindParam(':id', $account_id);
         $stmt->execute();
         $account = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -61,6 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account_id']))
             $stmt = $conn->prepare("DELETE FROM accounts WHERE id = :id");
             $stmt->bindParam(':id', $account_id);
             $stmt->execute();
+            
+            // Refresh accounts after delete
+            $accounts = fetchAccounts($conn, $account['user_reference'], $secret_key);
             $message = "Account deleted successfully.";
         } else {
             $message = "Username confirmation does not match.";
@@ -83,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_account_id']))
         $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         // Retrieve the user's hashed secret key
-        $stmt = $conn->prepare("SELECT secret_key FROM users WHERE username = :username");
+        $stmt = $conn->prepare("SELECT secret_key, email FROM users WHERE username = :username");
         $stmt->bindParam(':username', $username);
         $stmt->execute();
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -102,7 +118,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_account_id']))
             $stmt->bindParam(':new_description', $new_description);
             $stmt->bindParam(':id', $account_id);
             $stmt->execute();
+            
+            // Refresh accounts after update
+            $accounts = fetchAccounts($conn, $user['email'], $user['secret_key']);
             $message = "Account updated successfully.";
+            $_SESSION['message'] = $message;
+            header("Location: " . $_SERVER['PHP_SELF']);
+            exit();
         } else {
             $message = "Invalid secret key.";
         }
@@ -261,111 +283,120 @@ function decrypt_password($encrypted_password, $secret_key) {
 
     <!-- Main Content -->
     <div class="container" style="margin-top: 6rem;">
-        <!-- Header with Search and Controls -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="mb-0">Your Accounts</h2>
-            <?php if (!empty($accounts)): ?>
-            <div class="d-flex gap-3">
-                <div class="input-group">
-                    <span class="input-group-text bg-white border-end-0">
-                        <i class="fas fa-search text-muted"></i>
-                    </span>
-                    <input type="text" class="form-control border-start-0" id="searchAccounts" placeholder="Search accounts...">
-                </div>
-                <div class="btn-group">
-                    <button class="btn btn-outline-primary active" id="gridView">
-                        <i class="fas fa-th-large"></i>
-                    </button>
-                    <button class="btn btn-outline-primary" id="listView">
-                        <i class="fas fa-list"></i>
-                    </button>
-                </div>
-            </div>
-            <?php endif; ?>
-        </div>
 
-        <?php if (empty($accounts)): ?>
-            <div class="text-center py-5">
-                <div class="feature-icon mb-4">
-                    <i class="fas fa-folder-open fa-3x text-muted"></i>
-                </div>
-                <h3>No Accounts Found</h3>
-                <p class="text-muted mb-4">Start securing your accounts by adding your first one.</p>
-                <a href="add_account.php" class="btn btn-primary">
-                    <i class="fas fa-plus me-2"></i>Add New Account
-                </a>
-            </div>
-        <?php else: ?>
-            <!-- Existing accounts grid/list view -->
-            <div class="row g-4" id="accountsContainer">
-                <?php foreach ($accounts as $account): ?>
-                <div class="col-12 col-md-6 col-lg-4">
-                    <div class="card h-100">
-                        <div class="card-header d-flex align-items-center">
-                            <div class="account-icon me-3">
-                                <i class="fas fa-lock"></i>
-                            </div>
-                            <div>
-                                <h5 class="mb-0"><?php echo htmlspecialchars($account['email']); ?></h5>
-                                <small class="text-muted"><?php echo htmlspecialchars($account['username']); ?></small>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label class="form-label text-muted">Password</label>
-                                <div class="input-group">
-                                    <input type="password" 
-                                           class="form-control" 
-                                           value="<?php echo htmlspecialchars($account['password']); ?>" 
-                                           data-encrypted="true"
-                                           readonly>
-                                    <button class="btn btn-outline-gradient" onclick="togglePassword(this)">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button class="btn btn-outline-gradient" onclick="copyPassword('<?php echo htmlspecialchars($account['id']); ?>')">
-                                        <i class="fas fa-copy"></i>
-                                    </button>
+        <!-- Secret Key Modal -->
+        <?php if (!$verified): ?>
+            <div class="container" style="min-height: 100vh;">
+                <div class="row justify-content-center align-items-center" style="min-height: 100vh; margin-top: -5rem;">
+                    <div class="col-md-6">
+                        <div class="card p-4">
+                            <div class="card-body">
+                                <div class="text-center mb-4">
+                                    <div class="feature-icon mb-3">
+                                        <i class="fas fa-key"></i>
+                                    </div>
+                                    <h3>Enter Your Secret Key</h3>
+                                    <p class="text-muted">Enter your 6-digit PIN to access your accounts.</p>
                                 </div>
-                            </div>
-                            <div class="d-flex justify-content-end gap-2">
-                                <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editModal<?php echo $account['id']; ?>">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal<?php echo $account['id']; ?>">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
+                                <form method="post" id="secretKeyForm">
+                                    <div class="d-flex justify-content-center mb-4">
+                                        <?php for($i = 0; $i < 6; $i++): ?>
+                                            <input type="password" class="otp-input form-control" maxlength="1" name="secret_key[]" required>
+                                        <?php endfor; ?>
+                                    </div>
+                                    <script>
+                                        document.querySelectorAll('.otp-input').forEach((input, index, inputs) => {
+                                            input.addEventListener('input', () => {
+                                                console.log('input event triggered'); // Debug line
+                                                if (input.value.length === 1 && index < inputs.length - 1) {
+                                                    inputs[index + 1].focus();
+                                                }
+                                            });
+                                            input.addEventListener('keydown', (e) => {
+                                                console.log('keydown event triggered'); // Debug line
+                                                if (e.key === 'Backspace' && input.value.length === 0 && index > 0) {
+                                                    inputs[index - 1].focus();
+                                                }
+                                            });
+                                        });
+                                    </script>
+                                    <button type="submit" class="btn btn-primary w-100">Submit</button>
+                                </form>
                             </div>
                         </div>
                     </div>
                 </div>
-                <?php endforeach; ?>
             </div>
-        <?php endif; ?>
-    </div>
-
-    <!-- Secret Key Modal -->
-    <div class="modal fade" id="secretKeyModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Enter Your Secret Key</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <?php else: ?>
+            <!-- Header with Search and Controls -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">Your Accounts</h2>
+                <?php if (!empty($accounts)): ?>
+                <div class="d-flex gap-3">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0" id="searchAccounts" placeholder="Search accounts...">
+                    </div>
                 </div>
-                <div class="modal-body">
-                    <form id="secretKeyForm" method="post">
-                        <div class="d-flex justify-content-center mb-4">
-                            <?php for($i = 0; $i < 6; $i++): ?>
-                            <input type="password" class="otp-input no-paste" name="secret_key[]" maxlength="1" required>
-                            <?php endfor; ?>
+                <?php endif; ?>
+            </div>
+
+            <?php if (empty($accounts)): ?>
+                <div class="text-center py-5">
+                    <div class="feature-icon mb-4">
+                        <i class="fas fa-folder-open fa-3x text-muted"></i>
+                    </div>
+                    <h3>No Accounts Found</h3>
+                    <p class="text-muted mb-4">Start securing your accounts by adding your first one.</p>
+                    <a href="add_account.php" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Add New Account
+                    </a>
+                </div>
+            <?php else: ?>
+                <div class="row g-4" id="accountsContainer">
+                    <?php foreach ($accounts as $account): ?>
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <div class="card h-100">
+                            <div class="card-header d-flex align-items-center">
+                                <div class="account-icon me-3">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0"><?php echo htmlspecialchars($account['email']); ?></h5>
+                                    <small class="text-muted"><?php echo htmlspecialchars($account['username']); ?></small>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label text-muted">Password</label>
+                                    <div class="input-group">
+                                        <input type="password" 
+                                            class="form-control" 
+                                            value="<?php echo htmlspecialchars($account['password']); ?>" 
+                                            readonly>
+                                        <button class="btn btn-outline-gradient" onclick="togglePassword(this)">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-gradient" onclick="copyPassword('<?php echo htmlspecialchars($account['id']); ?>')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end gap-2">
+                                    <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editModal<?php echo $account['id']; ?>">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal<?php echo $account['id']; ?>">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100">Submit</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Edit Modal for each account -->
+                    </div>
+                    <?php endforeach; ?>
+                    <!-- Add Edit Modal for each account -->
     <?php foreach ($accounts as $account): ?>
     <div class="modal fade" id="editModal<?php echo $account['id']; ?>" tabindex="-1">
         <div class="modal-dialog">
@@ -387,7 +418,15 @@ function decrypt_password($encrypted_password, $secret_key) {
                         </div>
                         <div class="mb-3">
                             <label class="form-label">New Password (optional)</label>
-                            <input type="password" class="form-control" name="new_password">
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="new_password_<?php echo $account['id']; ?>" name="new_password">
+                                <button class="btn btn-outline-gradient" type="button" onclick="togglePasswordVisibility(<?php echo $account['id']; ?>)">
+                                    <i class="fas fa-eye" id="togglePasswordIcon_<?php echo $account['id']; ?>"></i>
+                                </button>
+                                <button class="btn btn-outline-gradient" type="button" onclick="generatePassword(<?php echo $account['id']; ?>)">
+                                    <i class="fas fa-magic"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Description</label>
@@ -430,20 +469,14 @@ function decrypt_password($encrypted_password, $secret_key) {
         </div>
     </div>
     <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
 
     <!-- Add JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        if (!<?php echo $verified ? 'true' : 'false'; ?>) {
-            document.addEventListener('DOMContentLoaded', function() {
-                const modal = new bootstrap.Modal(document.getElementById('secretKeyModal'), {
-                    backdrop: 'static',
-                    keyboard: false
-                });
-                modal.show();
-            });
-        }
-
         // Toggle password visibility
         function togglePassword(button) {
             const input = button.parentElement.querySelector('input');
@@ -463,19 +496,67 @@ function decrypt_password($encrypted_password, $secret_key) {
             // Implementation here
         }
 
-        // OTP input handlers (always needed for modal)
-        document.querySelectorAll('.otp-input').forEach((input, index, inputs) => {
-            input.addEventListener('input', () => {
-                if (input.value.length === 1 && index < inputs.length - 1) {
-                    inputs[index + 1].focus();
-                }
+        // Move OTP input handler to a reusable function
+        function setupOTPInputs() {
+            document.querySelectorAll('.otp-input').forEach((input, index, inputs) => {
+                input.addEventListener('input', () => {
+                    if (input.value.length === 1 && index < inputs.length - 1) {
+                        inputs[index + 1].focus();
+                    }
+                });
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Backspace' && input.value.length === 0 && index > 0) {
+                        inputs[index - 1].focus();
+                    }
+                });
             });
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace' && input.value.length === 0 && index > 0) {
-                    inputs[index - 1].focus();
-                }
-            });
+        }
+
+        // Call it when document is ready and after any modal opens
+        document.addEventListener('DOMContentLoaded', setupOTPInputs);
+        document.addEventListener('shown.bs.modal', function (event) {
+            setupOTPInputs();
         });
+
+        function togglePasswordVisibility(accountId) {
+            const passwordField = document.getElementById('new_password_' + accountId);
+            const toggleIcon = document.getElementById('togglePasswordIcon_' + accountId);
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                toggleIcon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                passwordField.type = 'password';
+                toggleIcon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
+        function generatePassword(accountId) {
+            const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+            const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const numbers = '0123456789';
+            const special = '@$!%*?&';
+            
+            let password = '';
+            const length = Math.floor(Math.random() * (32 - 12 + 1)) + 12;
+            
+            password += lowercase[Math.floor(Math.random() * lowercase.length)];
+            password += uppercase[Math.floor(Math.random() * uppercase.length)];
+            password += numbers[Math.floor(Math.random() * numbers.length)];
+            password += special[Math.floor(Math.random() * special.length)];
+            
+            const allChars = lowercase + uppercase + numbers + special;
+            for (let i = password.length; i < length; i++) {
+                password += allChars[Math.floor(Math.random() * allChars.length)];
+            }
+            
+            password = password.split('').sort(() => Math.random() - 0.5).join('');
+            
+            const passwordField = document.getElementById('new_password_' + accountId);
+            passwordField.value = password;
+            passwordField.type = 'text';
+            document.getElementById('togglePasswordIcon_' + accountId).classList.replace('fa-eye', 'fa-eye-slash');
+        }
 
         // Only attach these listeners if accounts are loaded
         <?php if ($verified): ?>
@@ -490,30 +571,6 @@ function decrypt_password($encrypted_password, $secret_key) {
                         card.closest('.col-12').style.display = 
                             email.includes(search) || username.includes(search) ? '' : 'none';
                     });
-                });
-            }
-
-            // Toggle view (grid/list)
-            const listView = document.getElementById('listView');
-            const gridView = document.getElementById('gridView');
-            
-            if (listView && gridView) {
-                listView.addEventListener('click', function() {
-                    document.getElementById('accountsContainer').classList.remove('row');
-                    document.querySelectorAll('#accountsContainer > div').forEach(div => {
-                        div.className = 'mb-4';
-                    });
-                    this.classList.add('active');
-                    gridView.classList.remove('active');
-                });
-
-                gridView.addEventListener('click', function() {
-                    document.getElementById('accountsContainer').classList.add('row');
-                    document.querySelectorAll('#accountsContainer > div').forEach(div => {
-                        div.className = 'col-12 col-md-6 col-lg-4';
-                    });
-                    this.classList.add('active');
-                    listView.classList.remove('active');
                 });
             }
     </script>
