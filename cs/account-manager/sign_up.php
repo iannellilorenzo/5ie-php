@@ -141,6 +141,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #6a11cb;
             border-color: #6a11cb;
         }
+        .password-toggle-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 100;
+            cursor: pointer;
+            color: #6c757d;
+            transition: color 0.3s ease;
+        }
+        .password-toggle-icon:hover {
+            color: #6a11cb;
+        }
+        .form-floating .input-group {
+            height: 3.5rem;
+        }
+        .form-floating .input-group .form-control {
+            height: 100%;
+        }
+        .form-floating .input-group .btn {
+            z-index: 3;
+        }
     </style>
 </head>
 <body class="d-flex align-items-center">
@@ -202,13 +224,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <label for="phone_number">Phone Number</label>
                             </div>
 
-                            <div class="form-floating mb-4">
+                            <div class="form-floating mb-4 position-relative">
                                 <input type="password" class="form-control" id="password" name="password" placeholder="Password" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$" required>
                                 <label for="password">Password</label>
-                                <div class="position-absolute end-0 top-50 translate-middle-y pe-3">
-                                    <i class="fas fa-eye text-muted" id="togglePasswordIcon" style="cursor: pointer;" onclick="togglePasswordVisibility()"></i>
-                                </div>
+                                <i class="fas fa-eye position-absolute top-50 end-0 translate-middle-y me-3" id="togglePasswordIcon" style="cursor: pointer;" onclick="togglePasswordVisibility()"></i>
                             </div>
+                            <div class="password-requirements mt-2">
+                                <small class="text-muted d-block mb-1">Password must contain:</small>
+                                <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> 8-32 characters</small>
+                                <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> At least one uppercase letter (A-Z)</small>
+                                <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> At least one lowercase letter (a-z)</small>
+                                <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> At least one number (0-9)</small>
+                                <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> At least one special character (@$!%*?&)</small>
+                            </div>
+                            <br> 
 
                             <div class="mb-4 d-flex justify-content-center">
                                 <div class="cf-turnstile" data-sitekey="<?php echo $turnstile_site_key; ?>"></div>

@@ -239,6 +239,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     </div>
+                                    <div class="password-requirements mt-2">
+                                        <small class="text-muted d-block mb-1">Password must contain:</small>
+                                        <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> 8-32 characters</small>
+                                        <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> At least one uppercase letter (A-Z)</small>
+                                        <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> At least one lowercase letter (a-z)</small>
+                                        <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> At least one number (0-9)</small>
+                                        <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> At least one special character (@$!%*?&)</small>
+                                    </div>
                                 </div>
 
                                 <div class="mb-4">

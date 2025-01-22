@@ -264,7 +264,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="mb-3">
                                 <label class="form-label">Password</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" id="account_password" name="account_password" placeholder="Enter account password">
+                                    <input type="password" class="form-control" id="account_password" name="account_password" placeholder="Enter account password" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$">
                                     <button class="btn btn-outline-gradient" type="button" onclick="togglePasswordVisibility()">
                                         <i class="fas fa-eye" id="togglePasswordIcon"></i>
                                     </button>
@@ -273,6 +273,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </button>
                                 </div>
                                 <small class="text-muted">Leave blank to generate a random password</small>
+                                <div class="password-requirements mt-2">
+                                    <small class="text-muted d-block mb-1">Password must contain:</small>
+                                    <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> 8-32 characters</small>
+                                    <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> At least one uppercase letter (A-Z)</small>
+                                    <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> At least one lowercase letter (a-z)</small>
+                                    <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> At least one number (0-9)</small>
+                                    <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> At least one special character (@$!%*?&)</small>
+                                </div>
                             </div>
 
                             <div class="password-strength bg-light mt-2"></div>

@@ -385,8 +385,8 @@ function decrypt_password($encrypted_password, $secret_key) {
                                     </div>
                                 </div>
                                 <div class="d-flex justify-content-end gap-2">
-                                    <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editModal<?php echo $account['id']; ?>">
-                                        <i class="fas fa-edit"></i>
+                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#viewModal<?php echo $account['id']; ?>">
+                                        <i class="fas fa-info-circle"></i>
                                     </button>
                                     <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal<?php echo $account['id']; ?>">
                                         <i class="fas fa-trash-alt"></i>
@@ -427,6 +427,14 @@ function decrypt_password($encrypted_password, $secret_key) {
                                     <i class="fas fa-magic"></i>
                                 </button>
                             </div>
+                            <div class="password-requirements mt-2">
+                                <small class="text-muted d-block mb-1">Password must contain:</small>
+                                <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> 8-32 characters</small>
+                                <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> At least one uppercase letter (A-Z)</small>
+                                <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> At least one lowercase letter (a-z)</small>
+                                <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> At least one number (0-9)</small>
+                                <small class="text-muted d-block"><i class="fas fa-check-circle me-1"></i> At least one special character (@$!%*?&)</small>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Description</label>
@@ -464,6 +472,51 @@ function decrypt_password($encrypted_password, $secret_key) {
                         </div>
                         <button type="submit" class="btn btn-danger w-100">Delete Account</button>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="viewModal<?php echo $account['id']; ?>" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Account Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" value="<?php echo htmlspecialchars($account['username']); ?>" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" value="<?php echo htmlspecialchars($account['email']); ?>" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" value="<?php echo htmlspecialchars($account['password']); ?>" readonly>
+                            <button class="btn btn-outline-gradient" type="button" onclick="togglePassword(this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-outline-gradient" type="button" onclick="copyPassword('<?php echo htmlspecialchars($account['id']); ?>')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" readonly><?php echo htmlspecialchars($account['description']); ?></textarea>
+                    </div>
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editModal<?php echo $account['id']; ?>">
+                            <i class="fas fa-edit me-2"></i>Edit Account
+                        </button>
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal<?php echo $account['id']; ?>">
+                            <i class="fas fa-trash-alt me-2"></i>Delete Account
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
