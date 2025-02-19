@@ -4,17 +4,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $operazione = $_POST['operation'] ?? '';
+$mode = $_POST['mode'] ?? 'basic';
 
-// Crea il socket client
+$data = json_encode([
+    'operation' => $operazione,
+    'mode' => $mode
+]);
+
 $client = socket_create(AF_INET, SOCK_STREAM, 0);
 
 if (socket_connect($client, "127.0.0.1", 12345)) {
-    // Invia l'operazione al server
-    socket_write($client, $operazione, strlen($operazione));
-    
-    // Ricevi il risultato dal server
+    socket_write($client, $data, strlen($data));
     $risultato = socket_read($client, 1024);
-    
     echo $risultato;
 } else {
     echo "Errore di connessione al server";

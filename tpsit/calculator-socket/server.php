@@ -6,36 +6,77 @@ socket_listen($server, 3);
 
 echo "Server in ascolto sulla porta 12345...\n";
 
+function scientific_calc($expression) {
+    // Sostituisce i simboli speciali
+    $expression = str_replace('π', M_PI, $expression);
+    $expression = str_replace('e', M_E, $expression);
+    
+    // Gestisce le funzioni matematiche
+    $expression = preg_replace_callback('/sin\((.*?)\)/', function($m) {
+        return sin(eval("return {$m[1]};"));
+    }, $expression);
+    
+    $expression = preg_replace_callback('/cos\((.*?)\)/', function($m) {
+        return cos(eval("return {$m[1]};"));
+    }, $expression);
+    
+    $expression = preg_replace_callback('/tan\((.*?)\)/', function($m) {
+        return tan(eval("return {$m[1]};"));
+    }, $expression);
+    
+    $expression = preg_replace_callback('/log\((.*?)\)/', function($m) {
+        return log10(eval("return {$m[1]};"));
+    }, $expression);
+    
+    $expression = preg_replace_callback('/ln\((.*?)\)/', function($m) {
+        return log(eval("return {$m[1]};"));
+    }, $expression);
+    
+    $expression = preg_replace_callback('/sqrt\((.*?)\)/', function($m) {
+        return sqrt(eval("return {$m[1]};"));
+    }, $expression);
+    
+    return $expression;
+}
+
 while (true) {
-    // Accetta la connessione dal client
     $client = socket_accept($server);
-    
-    // Ricevi l'operazione dal client
     $input = socket_read($client, 1024);
-    echo "Operazione ricevuta: " . $input . "\n";
     
-    // Controlla se l'input contiene caratteri non validi
-    $input_pulito = preg_replace('/[^0-9\+\-\*\/\(\)\.]/', '', $input);
+    // Decodifica input come JSON
+    $data = json_decode($input, true);
+    $expression = $data['operation'] ?? '';
+    $mode = $data['mode'] ?? 'basic';
     
-    if ($input !== $input_pulito) {
-        $risposta = "Errore: caratteri non validi nell'operazione. Usa solo numeri e operatori (+,-,*,/,.,())";
+    echo "Operazione ricevuta: " . $expression . " (Modalità: " . $mode . ")\n";
+    
+    if ($mode === 'basic') {
+        $pattern = '/[^0-9\+\-\*\/\^\(\)\.]/';
+    } else {
+        $pattern = '/[^0-9\+\-\*\/\^\(\)\.\s\p{L}π]/u';
+    }
+    
+    $input_pulito = preg_replace($pattern, '', $expression);
+    
+    if ($expression !== $input_pulito) {
+        $risposta = "Errore: caratteri non validi nell'operazione";
     } else {
         try {
-            $risultato = eval("return " . $input_pulito . ";");
-            if ($risultato === false) {
-                $risposta = "Errore: operazione non valida";
-            } else {
-                $risposta = (string)$risultato;
+            if ($mode === 'scientific') {
+                $input_pulito = scientific_calc($input_pulito);
             }
+            
+            // Gestisce l'operatore di potenza
+            $input_pulito = preg_replace('/(\d+)\^(\d+)/', 'pow($1,$2)', $input_pulito);
+            
+            $risultato = eval("return " . $input_pulito . ";");
+            $risposta = ($risultato === false) ? "Errore: operazione non valida" : (string)$risultato;
         } catch (Exception $e) {
             $risposta = "Errore nel calcolo";
         }
     }
     
-    // Invia il risultato al client
     socket_write($client, $risposta, strlen($risposta));
-    
-    // Chiudi la connessione
     socket_close($client);
 }
 
