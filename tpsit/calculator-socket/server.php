@@ -46,29 +46,17 @@ while (true) {
     // Decodifica input come JSON
     $data = json_decode($input, true);
     $expression = $data['operation'] ?? '';
-    $mode = $data['mode'] ?? 'basic';
     
-    echo "Operazione ricevuta: " . $expression . " (Modalità: " . $mode . ")\n";
+    echo "Operazione ricevuta: " . $expression . "\n";
     
-    if ($mode === 'basic') {
-        $pattern = '/[^0-9\+\-\*\/\^\(\)\.]/';
-    } else {
-        $pattern = '/[^0-9\+\-\*\/\^\(\)\.\s\p{L}π]/u';
-    }
-    
+    // Permette solo numeri e operatori di base
+    $pattern = '/[^0-9\+\-\*\/\(\)\.]/';
     $input_pulito = preg_replace($pattern, '', $expression);
     
     if ($expression !== $input_pulito) {
         $risposta = "Errore: caratteri non validi nell'operazione";
     } else {
         try {
-            if ($mode === 'scientific') {
-                $input_pulito = scientific_calc($input_pulito);
-            }
-            
-            // Gestisce l'operatore di potenza
-            $input_pulito = preg_replace('/(\d+)\^(\d+)/', 'pow($1,$2)', $input_pulito);
-            
             $risultato = eval("return " . $input_pulito . ";");
             $risposta = ($risultato === false) ? "Errore: operazione non valida" : (string)$risultato;
         } catch (Exception $e) {
