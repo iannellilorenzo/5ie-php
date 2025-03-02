@@ -67,5 +67,3 @@ while (true) {
     socket_write($client, $risposta, strlen($risposta));
     socket_close($client);
 }
-
-socket_close($server);
