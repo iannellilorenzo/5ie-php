@@ -1,8 +1,8 @@
 const WebSocket = require('ws');
 const { v4: uuidv4 } = require('uuid');
 const { connectToDatabase, closeConnection } = require('./db/mongodb');
-const Lobby = require('./lobby');
-const Player = require('./player');
+const Lobby = require('./models/lobby');
+const Player = require('./models/player');
 require('dotenv').config();
 
 // Initialize MongoDB connection
@@ -184,6 +184,127 @@ wss.on('connection', (ws) => {
               });
             } catch (error) {
               console.error('Error handling move:', error);
+            }
+          }
+          break;
+
+        case 'admin_auth':
+          // Simple password authentication for admin
+          if (data.password === 'admin') {  // Use a secure password in production
+            ws.send(JSON.stringify({
+              type: 'admin_auth_response',
+              success: true
+            }));
+            // Mark this connection as an admin
+            player.isAdmin = true;
+          } else {
+            ws.send(JSON.stringify({
+              type: 'admin_auth_response',
+              success: false
+            }));
+          }
+          break;
+
+        case 'admin_get_data':
+          // Only respond if this is an admin connection
+          if (player.isAdmin) {
+            // Get all lobbies from MongoDB
+            try {
+              const lobbies = await Lobby.getActiveWithPlayerCounts();
+              
+              // Format games data (from active lobbies with games)
+              const games = [];
+              for (const lobby of lobbies) {
+                const lobbyDetail = await Lobby.findById(lobby.id);
+                if (lobbyDetail && lobbyDetail.players.length > 1) {
+                  games.push({
+                    lobbyId: lobby.id,
+                    playerX: lobbyDetail.players.find(p => p.symbol === 'X')?.id || 'N/A',
+                    playerO: lobbyDetail.players.find(p => p.symbol === 'O')?.id || 'N/A',
+                    currentTurn: lobbyDetail.gameState.currentTurn
+                  });
+                }
+              }
+              
+              // Format client data
+              const clients = Array.from(activePlayers.entries()).map(([id, player]) => ({
+                id: id,
+                type: player.spectator ? 'Spectator' : (player.symbol ? `Player ${player.symbol}` : 'Unknown'),
+                lobbyId: player.lobbyId,
+                connectedAt: player.connectedAt || new Date(),
+                connected: player.connection.readyState === 1  // 1 = WebSocket.OPEN
+              }));
+              
+              ws.send(JSON.stringify({
+                type: 'admin_data',
+                lobbies: lobbies,
+                games: games,
+                clients: clients
+              }));
+            } catch (error) {
+              console.error('Error getting admin data:', error);
+              ws.send(JSON.stringify({
+                type: 'error',
+                message: 'Failed to retrieve data'
+              }));
+            }
+          }
+          break;
+
+        case 'admin_create_lobby':
+          // Only proceed if this is an admin connection
+          if (player.isAdmin) {
+            try {
+              const lobby = new Lobby(data.name, 'admin');
+              await lobby.save();
+              
+              ws.send(JSON.stringify({
+                type: 'lobby_created',
+                success: true
+              }));
+              
+              // Refresh admin data
+              const updatedLobbies = await Lobby.getActiveWithPlayerCounts();
+              ws.send(JSON.stringify({
+                type: 'admin_data',
+                lobbies: updatedLobbies,
+                games: [],
+                clients: []
+              }));
+            } catch (error) {
+              ws.send(JSON.stringify({
+                type: 'error',
+                message: error.message || 'Failed to create lobby'
+              }));
+            }
+          }
+          break;
+
+        case 'admin_delete_lobby':
+          // Only proceed if this is an admin connection
+          if (player.isAdmin) {
+            try {
+              const db = getDb();
+              await db.collection('lobbies').deleteOne({ _id: data.lobbyId });
+              
+              ws.send(JSON.stringify({
+                type: 'lobby_deleted',
+                success: true
+              }));
+              
+              // Refresh admin data
+              const updatedLobbies = await Lobby.getActiveWithPlayerCounts();
+              ws.send(JSON.stringify({
+                type: 'admin_data',
+                lobbies: updatedLobbies,
+                games: [],
+                clients: []
+              }));
+            } catch (error) {
+              ws.send(JSON.stringify({
+                type: 'error',
+                message: 'Failed to delete lobby'
+              }));
             }
           }
           break;

@@ -1,21 +1,21 @@
 const { MongoClient } = require('mongodb');
-require('dotenv').config();
 
-const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
-const dbName = process.env.DB_NAME || 'game_service_db';
+// Connection URL
+const url = process.env.MONGODB_URI || 'mongodb://localhost:27017';
+const dbName = process.env.DB_NAME || 'tictactoe';
 
 let client;
 let db;
 
 async function connectToDatabase() {
-  if (db) return db;
-  
   try {
-    client = new MongoClient(uri);
+    client = new MongoClient(url);
     await client.connect();
-    console.log('Connected to MongoDB');
+    console.log('Connected to MongoDB server');
     
     db = client.db(dbName);
+    console.log(`Using database: ${dbName}`);
+    
     return db;
   } catch (error) {
     console.error('MongoDB connection error:', error);
@@ -30,9 +30,9 @@ function getDb() {
   return db;
 }
 
-function closeConnection() {
+async function closeConnection() {
   if (client) {
-    client.close();
+    await client.close();
     console.log('MongoDB connection closed');
   }
 }

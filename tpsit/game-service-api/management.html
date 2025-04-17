@@ -1,0 +1,563 @@
+\management.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Service Management</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .console {
+            background-color: #212529;
+            color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            height: 350px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .log-info {
+            color: #6ea8fe; /* Bootstrap blue-300 */
+        }
+        .log-success {
+            color: #75b798; /* Bootstrap green-300 */
+        }
+        .log-warning {
+            color: #ffda6a; /* Bootstrap yellow-300 */
+        }
+        .log-error {
+            color: #ea868f; /* Bootstrap red-300 */
+        }
+        .table-responsive {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .status-connected {
+            color: #198754; /* Bootstrap success */
+        }
+        .status-disconnected {
+            color: #dc3545; /* Bootstrap danger */
+        }
+        .connection-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .connection-connected {
+            background-color: #198754;
+        }
+        .connection-disconnected {
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+            <h1 class="mb-0">
+                <i class="bi bi-joystick"></i> Game Service Management
+            </h1>
+            <div class="d-flex align-items-center">
+                <span class="me-2">Status:</span>
+                <span id="connectionStatus">
+                    <span class="connection-indicator connection-disconnected"></span>
+                    Disconnected
+                </span>
+                <button id="refreshButton" class="btn btn-sm btn-outline-primary ms-3">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0"><i class="bi bi-plus-circle"></i> Create Lobby</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="createLobbyForm" class="d-flex gap-2">
+                            <input type="text" id="lobbyName" class="form-control" placeholder="Lobby Name" required>
+                            <button type="submit" class="btn btn-primary">Create</button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0"><i class="bi bi-list-ul"></i> Active Lobbies</h5>
+                        <span class="badge bg-light text-dark" id="lobbyCount">0</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table id="lobbiesTable" class="table table-striped table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Players</th>
+                                        <th>Spectators</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Lobby data will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0"><i class="bi bi-controller"></i> Active Games</h5>
+                        <span class="badge bg-light text-dark" id="gameCount">0</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table id="gamesTable" class="table table-striped table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Lobby ID</th>
+                                        <th>Player X</th>
+                                        <th>Player O</th>
+                                        <th>Turn</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Game data will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0"><i class="bi bi-people"></i> Connected Clients</h5>
+                        <span class="badge bg-light text-dark" id="clientCount">0</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table id="clientsTable" class="table table-striped table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Type</th>
+                                        <th>Lobby</th>
+                                        <th>Connected At</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Client data will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0"><i class="bi bi-terminal"></i> Console</h5>
+                <div>
+                    <button id="clearConsole" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-trash"></i> Clear
+                    </button>
+                    <button id="copyConsole" class="btn btn-sm btn-outline-light ms-2">
+                        <i class="bi bi-clipboard"></i> Copy
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="console" id="console"></div>
+            </div>
+        </div>
+        
+        <footer class="mt-4 pt-3 border-top text-muted text-center">
+            <small>Game Service Management Console &copy; 2025</small>
+        </footer>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let socket;
+        let lobbies = [];
+        let games = [];
+        let clients = [];
+        let isConnected = false;
+        
+        // Connect to WebSocket server
+        function connectWebSocket() {
+            updateConnectionStatus(false);
+            socket = new WebSocket('ws://localhost:8080');
+            
+            socket.onopen = () => {
+                updateConnectionStatus(true);
+                log('Connected to WebSocket server', 'success');
+                sendMessage({ type: 'admin_auth', password: 'admin' });
+                refreshData();
+            };
+            
+            socket.onclose = () => {
+                updateConnectionStatus(false);
+                log('Disconnected from WebSocket server', 'error');
+                setTimeout(connectWebSocket, 5000); // Try to reconnect after 5 seconds
+            };
+            
+            socket.onerror = (error) => {
+                updateConnectionStatus(false);
+                log('WebSocket error occurred', 'error');
+                console.error('WebSocket error:', error);
+            };
+            
+            socket.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                handleMessage(message);
+            };
+        }
+        
+        // Update connection status indicator
+        function updateConnectionStatus(connected) {
+            isConnected = connected;
+            const indicator = document.getElementById('connectionStatus');
+            
+            if (connected) {
+                indicator.innerHTML = '<span class="connection-indicator connection-connected"></span> Connected';
+                indicator.classList.remove('text-danger');
+                indicator.classList.add('text-success');
+            } else {
+                indicator.innerHTML = '<span class="connection-indicator connection-disconnected"></span> Disconnected';
+                indicator.classList.remove('text-success');
+                indicator.classList.add('text-danger');
+            }
+        }
+        
+        // Handle incoming messages
+        function handleMessage(message) {
+            // Log the full message to browser console for debugging
+            console.log('Received message:', message);
+            
+            // Log a simplified message to the UI console
+            let logType = 'info';
+            let logMessage = '';
+            
+            switch(message.type) {
+                case 'admin_auth_response':
+                    logType = message.success ? 'success' : 'error';
+                    logMessage = message.success ? 
+                        'Admin authentication successful' : 
+                        'Admin authentication failed';
+                    break;
+                    
+                case 'admin_data':
+                    lobbies = message.lobbies || [];
+                    games = message.games || [];
+                    clients = message.clients || [];
+                    logMessage = `Received data: ${lobbies.length} lobbies, ${games.length} games, ${clients.length} clients`;
+                    updateUI();
+                    break;
+                    
+                case 'lobby_created':
+                    logType = 'success';
+                    logMessage = 'Lobby created successfully';
+                    refreshData();
+                    break;
+                    
+                case 'lobby_deleted':
+                    logType = 'success';
+                    logMessage = 'Lobby deleted successfully';
+                    refreshData();
+                    break;
+                    
+                case 'error':
+                    logType = 'error';
+                    logMessage = `Error: ${message.message}`;
+                    break;
+                    
+                case 'game_started':
+                    logType = 'success';
+                    logMessage = 'Game started';
+                    refreshData();
+                    break;
+                    
+                case 'game_ended':
+                    logType = 'info';
+                    logMessage = 'Game ended';
+                    refreshData();
+                    break;
+                    
+                case 'client_connected':
+                    logType = 'info';
+                    logMessage = 'Client connected';
+                    refreshData();
+                    break;
+                    
+                case 'client_disconnected':
+                    logType = 'warning';
+                    logMessage = 'Client disconnected';
+                    refreshData();
+                    break;
+                    
+                default:
+                    logMessage = `Received message: ${message.type}`;
+                    break;
+            }
+            
+            log(logMessage, logType);
+        }
+        
+        // Send message to server
+        function sendMessage(message) {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify(message));
+                
+                // Log the message to browser console
+                console.log('Sent message:', message);
+                
+                // Log a simplified version to the UI console
+                let logMessage = `Sent: ${message.type}`;
+                log(logMessage, 'info');
+            } else {
+                log('Cannot send message, socket not connected', 'error');
+            }
+        }
+        
+        // Request fresh data from server
+        function refreshData() {
+            if (isConnected) {
+                sendMessage({ type: 'admin_get_data' });
+                
+                // Show loading spinner on refresh button
+                const refreshButton = document.getElementById('refreshButton');
+                const originalContent = refreshButton.innerHTML;
+                refreshButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Refreshing...';
+                refreshButton.disabled = true;
+                
+                // Reset button after 1 second
+                setTimeout(() => {
+                    refreshButton.innerHTML = originalContent;
+                    refreshButton.disabled = false;
+                }, 1000);
+            } else {
+                log('Cannot refresh, not connected to server', 'error');
+            }
+        }
+        
+        // Update the UI with current data
+        function updateUI() {
+            // Update count badges
+            document.getElementById('lobbyCount').textContent = lobbies.length;
+            document.getElementById('gameCount').textContent = games.length;
+            document.getElementById('clientCount').textContent = clients.length;
+            
+            // Update lobbies table
+            const lobbiesTable = document.getElementById('lobbiesTable').getElementsByTagName('tbody')[0];
+            lobbiesTable.innerHTML = '';
+            
+            if (lobbies.length === 0) {
+                const row = lobbiesTable.insertRow();
+                const cell = row.insertCell(0);
+                cell.colSpan = 6;
+                cell.className = "text-center text-muted py-3";
+                cell.innerHTML = "<i class='bi bi-info-circle me-2'></i>No active lobbies";
+            } else {
+                lobbies.forEach(lobby => {
+                    const row = lobbiesTable.insertRow();
+                    row.insertCell(0).textContent = lobby.id;
+                    row.insertCell(1).textContent = lobby.name;
+                    row.insertCell(2).textContent = typeof lobby.players === 'number' ? 
+                        `${lobby.players}/2` : `${lobby.players.length}/2`;
+                    row.insertCell(3).textContent = typeof lobby.spectators === 'number' ? 
+                        lobby.spectators : lobby.spectators.length;
+                    
+                    const statusCell = row.insertCell(4);
+                    const status = lobby.status || (lobby.isFull ? 'Full' : 'Waiting');
+                    const badgeClass = status === 'Full' ? 'bg-success' : 'bg-warning';
+                    statusCell.innerHTML = `<span class="badge ${badgeClass}">${status}</span>`;
+                    
+                    const actionsCell = row.insertCell(5);
+                    actionsCell.innerHTML = `
+                        <button class="btn btn-sm btn-danger" onclick="deleteLobby('${lobby.id}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    `;
+                });
+            }
+            
+            // Update games table
+            const gamesTable = document.getElementById('gamesTable').getElementsByTagName('tbody')[0];
+            gamesTable.innerHTML = '';
+            
+            if (games.length === 0) {
+                const row = gamesTable.insertRow();
+                const cell = row.insertCell(0);
+                cell.colSpan = 5;
+                cell.className = "text-center text-muted py-3";
+                cell.innerHTML = "<i class='bi bi-controller me-2'></i>No active games";
+            } else {
+                games.forEach(game => {
+                    const row = gamesTable.insertRow();
+                    row.insertCell(0).textContent = game.lobbyId;
+                    row.insertCell(1).textContent = game.playerX || 'N/A';
+                    row.insertCell(2).textContent = game.playerO || 'N/A';
+                    
+                    const turnCell = row.insertCell(3);
+                    const turnBadgeClass = game.currentTurn === 'X' ? 'bg-primary' : 'bg-success';
+                    turnCell.innerHTML = `<span class="badge ${turnBadgeClass}">Player ${game.currentTurn}</span>`;
+                    
+                    const actionsCell = row.insertCell(4);
+                    actionsCell.innerHTML = `
+                        <button class="btn btn-sm btn-warning" onclick="resetGame('${game.lobbyId}')">
+                            <i class="bi bi-arrow-repeat"></i> Reset
+                        </button>
+                    `;
+                });
+            }
+            
+            // Update clients table
+            const clientsTable = document.getElementById('clientsTable').getElementsByTagName('tbody')[0];
+            clientsTable.innerHTML = '';
+            
+            if (clients.length === 0) {
+                const row = clientsTable.insertRow();
+                const cell = row.insertCell(0);
+                cell.colSpan = 5;
+                cell.className = "text-center text-muted py-3";
+                cell.innerHTML = "<i class='bi bi-people me-2'></i>No connected clients";
+            } else {
+                clients.forEach(client => {
+                    const row = clientsTable.insertRow();
+                    row.insertCell(0).textContent = client.id;
+                    row.insertCell(1).textContent = client.type;
+                    row.insertCell(2).textContent = client.lobbyId || 'N/A';
+                    row.insertCell(3).textContent = new Date(client.connectedAt).toLocaleString();
+                    
+                    const statusCell = row.insertCell(4);
+                    statusCell.innerHTML = client.connected ? 
+                        '<span class="badge bg-success">Connected</span>' : 
+                        '<span class="badge bg-danger">Disconnected</span>';
+                });
+            }
+        }
+        
+        // Create a new lobby
+        function createLobby(name) {
+            sendMessage({
+                type: 'admin_create_lobby',
+                name: name
+            });
+        }
+        
+        // Delete a lobby
+        function deleteLobby(lobbyId) {
+            if (confirm(`Are you sure you want to delete lobby ${lobbyId}?`)) {
+                sendMessage({
+                    type: 'admin_delete_lobby',
+                    lobbyId: lobbyId
+                });
+            }
+        }
+        
+        // Reset a game
+        function resetGame(lobbyId) {
+            if (confirm(`Are you sure you want to reset the game in lobby ${lobbyId}?`)) {
+                sendMessage({
+                    type: 'admin_reset_game',
+                    lobbyId: lobbyId
+                });
+            }
+        }
+        
+        // Log messages to console with color coding
+        function log(message, type = 'info') {
+            const consoleElement = document.getElementById('console');
+            const time = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-${type}`;
+            logEntry.innerHTML = `[${time}] ${message}`;
+            
+            consoleElement.appendChild(logEntry);
+            consoleElement.scrollTop = consoleElement.scrollHeight;
+        }
+        
+        // Clear console
+        function clearConsole() {
+            document.getElementById('console').innerHTML = '';
+            log('Console cleared', 'info');
+        }
+        
+        // Copy console content to clipboard
+        function copyConsole() {
+            const consoleText = document.getElementById('console').innerText;
+            navigator.clipboard.writeText(consoleText).then(() => {
+                log('Console content copied to clipboard', 'success');
+            }).catch(err => {
+                log('Failed to copy console content', 'error');
+                console.error('Could not copy text:', err);
+            });
+        }
+        
+        // Set up keyboard shortcuts
+        document.addEventListener('keydown', function(event) {
+            // Ctrl+R: Refresh data
+            if (event.ctrlKey && event.key === 'r') {
+                event.preventDefault();
+                refreshData();
+            }
+            
+            // Ctrl+L: Clear console
+            if (event.ctrlKey && event.key === 'l') {
+                event.preventDefault();
+                clearConsole();
+            }
+        });
+        
+        // Event listeners
+        document.getElementById('createLobbyForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const lobbyName = document.getElementById('lobbyName').value;
+            createLobby(lobbyName);
+            document.getElementById('lobbyName').value = '';
+        });
+        
+        document.getElementById('clearConsole').addEventListener('click', clearConsole);
+        document.getElementById('copyConsole').addEventListener('click', copyConsole);
+        document.getElementById('refreshButton').addEventListener('click', refreshData);
+        
+        // Initialize
+        window.onload = function() {
+            log('Initializing game management console...', 'info');
+            connectWebSocket();
+            
+            // Set up tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Set up periodic refresh
+            setInterval(refreshData, 10000); // Refresh every 10 seconds
+        };
+    </script>
+</body>
+</html>
