@@ -1,8 +1,9 @@
 const WebSocket = require('ws');
 const { v4: uuidv4 } = require('uuid');
-const { connectToDatabase, closeConnection } = require('./db/mongodb');
+const { getDb, connectToDatabase, closeConnection } = require('./db/mongodb');
 const Lobby = require('./models/lobby');
 const Player = require('./models/player');
+const { ObjectId } = require('mongodb'); // Aggiungi questa importazione all'inizio del file se non c'è già
 require('dotenv').config();
 
 // Initialize MongoDB connection
@@ -285,7 +286,12 @@ wss.on('connection', (ws) => {
           if (player.isAdmin) {
             try {
               const db = getDb();
-              await db.collection('lobbies').deleteOne({ _id: data.lobbyId });
+              const { ObjectId } = require('mongodb'); // Aggiungi questa importazione all'inizio del file se non c'è già
+              
+              // Converti la stringa lobbyId in un ObjectId
+              const objectId = new ObjectId(data.lobbyId);
+              
+              await db.collection('lobbies').deleteOne({ _id: objectId });
               
               ws.send(JSON.stringify({
                 type: 'lobby_deleted',
@@ -301,9 +307,50 @@ wss.on('connection', (ws) => {
                 clients: []
               }));
             } catch (error) {
+              console.error('Error deleting lobby:', error);
               ws.send(JSON.stringify({
                 type: 'error',
-                message: 'Failed to delete lobby'
+                message: 'Failed to delete lobby: ' + error.message
+              }));
+            }
+          }
+          break;
+
+        case 'admin_export_data':
+          if (player.isAdmin) {
+            try {
+              const db = getDb();
+              
+              // Get all collections
+              const collections = await db.listCollections().toArray();
+              const exportData = {
+                metadata: {
+                  exportDate: new Date(),
+                  version: '1.0'
+                },
+                collections: {}
+              };
+              
+              // Export each collection
+              for (const collection of collections) {
+                const collectionName = collection.name;
+                const documents = await db.collection(collectionName).find({}).toArray();
+                exportData.collections[collectionName] = documents;
+              }
+              
+              // Send back to client
+              ws.send(JSON.stringify({
+                type: 'admin_export_data_response',
+                data: exportData
+              }));
+              
+              console.log(`Database export sent to admin ${playerId}`);
+              
+            } catch (error) {
+              console.error('Error exporting data:', error);
+              ws.send(JSON.stringify({
+                type: 'error',
+                message: 'Failed to export database'
               }));
             }
           }

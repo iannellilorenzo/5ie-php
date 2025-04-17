@@ -1,4 +1,3 @@
-\management.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -76,6 +75,9 @@
                 <button id="refreshButton" class="btn btn-sm btn-outline-primary ms-3">
                     <i class="bi bi-arrow-clockwise"></i> Refresh
                 </button>
+                <button id="exportData" class="btn btn-sm btn-outline-info ms-2">
+                    <i class="bi bi-download"></i> Export Data
+                </button>
             </div>
         </div>
         
@@ -93,6 +95,30 @@
                     </div>
                 </div>
                 
+                <!-- Add this card before the Active Lobbies card -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0"><i class="bi bi-door-open"></i> Join Lobby</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="joinLobbyForm" class="d-flex flex-column gap-2">
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <input type="text" id="lobbyCode" class="form-control" placeholder="Codice Lobby (6 cifre)" 
+                                           pattern="[0-9]{6}" maxlength="6" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <select id="gameType" class="form-select">
+                                        <option value="tris" selected>Tris</option>
+                                        <!-- Altri giochi futuri -->
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 mt-2">Unisciti alla Lobby</button>
+                        </form>
+                    </div>
+                </div>
+
                 <div class="card shadow-sm">
                     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0"><i class="bi bi-list-ul"></i> Active Lobbies</h5>
@@ -132,8 +158,8 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th>Lobby ID</th>
-                                        <th>Player X</th>
-                                        <th>Player O</th>
+                                        <th>Game Type</th>
+                                        <th>Players</th>
                                         <th>Turn</th>
                                         <th>Actions</th>
                                     </tr>
@@ -317,6 +343,15 @@
                     refreshData();
                     break;
                     
+                case 'admin_export_data_response':
+                    logType = 'success';
+                    logMessage = 'Database export received';
+                    
+                    // Download the exported data
+                    const timestamp = new Date().toISOString().replace(/:/g, '-');
+                    downloadObjectAsJson(message.data, `tictactoe_export_${timestamp}`);
+                    break;
+                    
                 default:
                     logMessage = `Received message: ${message.type}`;
                     break;
@@ -382,7 +417,13 @@
             } else {
                 lobbies.forEach(lobby => {
                     const row = lobbiesTable.insertRow();
-                    row.insertCell(0).textContent = lobby.id;
+                    const shortId = generateShortId(lobby.id);
+                    
+                    // Display short ID but store original ID as data attribute
+                    const idCell = row.insertCell(0);
+                    idCell.textContent = shortId;
+                    idCell.dataset.originalId = lobby.id;
+                    
                     row.insertCell(1).textContent = lobby.name;
                     row.insertCell(2).textContent = typeof lobby.players === 'number' ? 
                         `${lobby.players}/2` : `${lobby.players.length}/2`;
@@ -416,9 +457,17 @@
             } else {
                 games.forEach(game => {
                     const row = gamesTable.insertRow();
-                    row.insertCell(0).textContent = game.lobbyId;
-                    row.insertCell(1).textContent = game.playerX || 'N/A';
-                    row.insertCell(2).textContent = game.playerO || 'N/A';
+                    const shortId = generateShortId(game.lobbyId);
+                    
+                    // Display short ID but maintain original for operations
+                    row.insertCell(0).textContent = shortId;
+                    
+                    // Show game type (for now, it's always Tris)
+                    row.insertCell(1).textContent = "Tris";
+                    
+                    // Show player count instead of individual players
+                    const playerCount = (game.playerX ? 1 : 0) + (game.playerO ? 1 : 0);
+                    row.insertCell(2).textContent = `${playerCount}/2`;
                     
                     const turnCell = row.insertCell(3);
                     const turnBadgeClass = game.currentTurn === 'X' ? 'bg-primary' : 'bg-success';
@@ -469,7 +518,8 @@
         
         // Delete a lobby
         function deleteLobby(lobbyId) {
-            if (confirm(`Are you sure you want to delete lobby ${lobbyId}?`)) {
+            if (confirm(`Are you sure you want to delete lobby ${generateShortId(lobbyId)}?`)) {
+                console.log("Deleting lobby with ID:", lobbyId); // Debug log
                 sendMessage({
                     type: 'admin_delete_lobby',
                     lobbyId: lobbyId
@@ -517,6 +567,39 @@
             });
         }
         
+        // Export database
+        function exportDatabase() {
+            if (isConnected) {
+                log('Requesting database export...', 'info');
+                sendMessage({ type: 'admin_export_data' });
+                
+                // Show loading spinner on export button
+                const exportButton = document.getElementById('exportData');
+                const originalContent = exportButton.innerHTML;
+                exportButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Exporting...';
+                exportButton.disabled = true;
+                
+                // Reset button after 2 seconds
+                setTimeout(() => {
+                    exportButton.innerHTML = originalContent;
+                    exportButton.disabled = false;
+                }, 2000);
+            } else {
+                log('Cannot export data, not connected to server', 'error');
+            }
+        }
+
+        // Download exported data as a JSON file
+        function downloadObjectAsJson(exportObj, exportName) {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", exportName + ".json");
+            document.body.appendChild(downloadAnchorNode); // required for firefox
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+        
         // Set up keyboard shortcuts
         document.addEventListener('keydown', function(event) {
             // Ctrl+R: Refresh data
@@ -543,7 +626,40 @@
         document.getElementById('clearConsole').addEventListener('click', clearConsole);
         document.getElementById('copyConsole').addEventListener('click', copyConsole);
         document.getElementById('refreshButton').addEventListener('click', refreshData);
+        document.getElementById('exportData').addEventListener('click', exportDatabase);
         
+        // Add this event listener with the other form handlers
+        document.getElementById('joinLobbyForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const lobbyCode = document.getElementById('lobbyCode').value;
+            const gameType = document.getElementById('gameType').value;
+            
+            // Find the original lobby ID from the short code
+            const matchingLobby = lobbies.find(lobby => generateShortId(lobby.id) === lobbyCode);
+            
+            if (matchingLobby) {
+                // Join the lobby with the original ID
+                joinLobby(matchingLobby.id, gameType);
+                document.getElementById('lobbyCode').value = '';
+            } else {
+                log(`Lobby with code ${lobbyCode} not found`, 'error');
+            }
+        });
+
+        // Modifica questa funzione per entrare direttamente nella lobby
+        function joinLobby(lobbyId, gameType) {
+            // Genera l'ID corto per una migliore leggibilità nei log
+            const shortId = generateShortId(lobbyId);
+            
+            // Costruisci l'URL del client con il parametro lobbyId
+            const clientUrl = `tris.html?lobby=${lobbyId}`;
+            
+            // Apri una nuova finestra/tab con il client
+            window.open(clientUrl, '_blank');
+            
+            log(`Aperta lobby ${shortId} in una nuova finestra`, 'success');
+        }
+
         // Initialize
         window.onload = function() {
             log('Initializing game management console...', 'info');
@@ -558,6 +674,21 @@
             // Set up periodic refresh
             setInterval(refreshData, 10000); // Refresh every 10 seconds
         };
+
+        // Add this function near your other utility functions
+        function generateShortId(longId) {
+            // Create a 6-digit number based on hashing the long ID
+            // This uses the last 6 characters of MD5-like hashing
+            let hash = 0;
+            for (let i = 0; i < longId.length; i++) {
+                hash = ((hash << 5) - hash) + longId.charCodeAt(i);
+                hash = hash & hash; // Convert to 32bit integer
+            }
+            // Make sure it's a 6-digit positive number
+            let shortId = Math.abs(hash % 1000000);
+            // Pad with leading zeros if needed
+            return shortId.toString().padStart(6, '0');
+        }
     </script>
 </body>
 </html>
