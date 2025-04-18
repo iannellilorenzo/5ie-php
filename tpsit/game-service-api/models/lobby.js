@@ -1,17 +1,22 @@
 const { getDb } = require('../db/mongodb');
 
 class Lobby {
-  constructor(name, creatorId) {
+  constructor(name, creatorId, maxPlayers = 2, gameType = 'tris') {
     this._id = null;
     this.name = name;
     this.creatorId = creatorId;
     this.createdAt = new Date();
     this.players = [];
     this.spectators = [];
+    this.maxPlayers = Math.min(Math.max(2, parseInt(maxPlayers) || 2), 16);
+    this.gameType = gameType;
+    
+    // Stato generico del gioco - è solo un contenitore
     this.gameState = {
-      board: Array(9).fill(null),
-      currentTurn: 'X',
-      winner: null
+      currentTurn: null,  // ID del giocatore di turno
+      status: 'waiting',  // waiting, playing, finished
+      data: {},           // Qui ogni gioco memorizza il suo stato specifico
+      lastUpdate: new Date()
     };
   }
 
@@ -29,19 +34,40 @@ class Lobby {
     return this._id;
   }
 
-  async addPlayer(playerId, symbol) {
+  // I metodi restano simili ma senza logica specifica per il Tris
+  async addPlayer(playerId, playerOptions = {}) {
     const db = getDb();
     
-    // Add player to the lobby
+    // Verifica se la lobby è piena
+    if (this.players.length >= this.maxPlayers) {
+      throw new Error(`Lobby is full (max ${this.maxPlayers} players)`);
+    }
+    
+    // Il client fornisce le opzioni del giocatore specifiche per il gioco
+    const playerData = {
+      id: playerId,
+      joinedAt: new Date(),
+      ...playerOptions  // può includere simboli, ruoli, o altro specifico del gioco
+    };
+    
     await db.collection('lobbies').updateOne(
       { _id: this._id },
-      { $push: { players: { id: playerId, symbol } } }
+      { $push: { players: playerData } }
     );
     
-    // Update local state
-    this.players.push({ id: playerId, symbol });
+    // Imposta il giocatore di turno se è il primo a unirsi
+    if (this.players.length === 0) {
+      await db.collection('lobbies').updateOne(
+        { _id: this._id },
+        { $set: { "gameState.currentTurn": playerId } }
+      );
+      this.gameState.currentTurn = playerId;
+    }
     
-    return { id: playerId, symbol };
+    // Update local state
+    this.players.push(playerData);
+    
+    return playerData;
   }
 
   async addSpectator(spectatorId) {
@@ -90,9 +116,10 @@ class Lobby {
     lobbyInstance.players = lobby.players || [];
     lobbyInstance.spectators = lobby.spectators || [];
     lobbyInstance.gameState = lobby.gameState || {
-      board: Array(9).fill(null),
-      currentTurn: 'X',
-      winner: null
+      currentTurn: null,
+      status: 'waiting',
+      data: {},
+      lastUpdate: new Date()
     };
     
     return lobbyInstance;
@@ -111,9 +138,10 @@ class Lobby {
     lobbyInstance.players = lobby.players || [];
     lobbyInstance.spectators = lobby.spectators || [];
     lobbyInstance.gameState = lobby.gameState || {
-      board: Array(9).fill(null),
-      currentTurn: 'X',
-      winner: null
+      currentTurn: null,
+      status: 'waiting',
+      data: {},
+      lastUpdate: new Date()
     };
     
     return lobbyInstance;
@@ -129,7 +157,8 @@ class Lobby {
       name: lobby.name,
       players: lobby.players ? lobby.players.length : 0,
       spectators: lobby.spectators ? lobby.spectators.length : 0,
-      isFull: lobby.players && lobby.players.length >= 2
+      isFull: lobby.players && lobby.players.length >= (lobby.maxPlayers || 2),
+      maxPlayers: lobby.maxPlayers || 2 // Aggiungi il numero massimo di giocatori
     }));
   }
 }

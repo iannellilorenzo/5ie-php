@@ -5,18 +5,29 @@ class Player {
     this.lobbyId = null;
     this.symbol = null;
     this.spectator = false;
+    this.isAdmin = false;
+    this.connectedAt = new Date();
+    this.alias = null; // Nuovo campo per l'alias
   }
 
-  setAsPlayer(lobbyId, symbol) {
+  // Imposta l'alias per il giocatore
+  setAlias(alias) {
+    this.alias = alias;
+  }
+
+  // Modifica i metodi esistenti per supportare gli alias
+  setAsPlayer(lobbyId, symbol, alias = null) {
     this.lobbyId = lobbyId;
     this.symbol = symbol;
     this.spectator = false;
+    if (alias) this.alias = alias;
   }
 
-  setAsSpectator(lobbyId) {
+  setAsSpectator(lobbyId, alias = null) {
     this.lobbyId = lobbyId;
-    this.spectator = true;
     this.symbol = null;
+    this.spectator = true;
+    if (alias) this.alias = alias;
   }
 
   isInLobby() {

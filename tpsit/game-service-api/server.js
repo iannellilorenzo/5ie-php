@@ -4,6 +4,7 @@ const { getDb, connectToDatabase, closeConnection } = require('./db/mongodb');
 const Lobby = require('./models/lobby');
 const Player = require('./models/player');
 const { ObjectId } = require('mongodb'); // Aggiungi questa importazione all'inizio del file se non c'è già
+const Move = require('./models/move');
 require('dotenv').config();
 
 // Initialize MongoDB connection
@@ -34,25 +35,28 @@ wss.on('connection', (ws) => {
       switch (data.type) {
         case 'create_lobby':
           try {
-            // Create a new lobby with this player as creator
-            const lobby = new Lobby(data.lobby, playerId);
-            const lobbyId = await lobby.save();
+            const gameType = data.gameType || 'tris'; 
+            const maxPlayers = data.maxPlayers || 2;
+            const alias = data.alias || `Giocatore_${playerId.substring(0, 5)}`;
+            player.setAlias(alias);
             
-            // Add the player to the lobby
-            await lobby.addPlayer(playerId, 'X');
+            const lobby = new Lobby(data.lobby, playerId, maxPlayers, gameType);
+            await lobby.save();
             
-            // Update player info
-            player.setAsPlayer(lobbyId, 'X');
+            // Aggiunto alias nelle opzioni del giocatore
+            await lobby.addPlayer(playerId, { symbol: 'X', alias: alias });
+            player.setAsPlayer(lobby._id, 'X', alias);
             
-            ws.send(JSON.stringify({ 
-              type: 'lobby_created', 
-              lobby: data.lobby, 
-              symbol: 'X' 
+            ws.send(JSON.stringify({
+              type: 'lobby_created',
+              lobbyId: lobby._id,
+              symbol: 'X',
+              alias: alias
             }));
           } catch (error) {
-            ws.send(JSON.stringify({ 
-              type: 'error', 
-              message: error.message || 'Lobby already exists' 
+            ws.send(JSON.stringify({
+              type: 'error',
+              message: error.message || 'Errore nella creazione della lobby'
             }));
           }
           break;
@@ -71,9 +75,14 @@ wss.on('connection', (ws) => {
               await lobby.addSpectator(playerId);
               player.setAsSpectator(lobby._id);
               
+              // Ottieni tutte le mosse per questa lobby
+              const moves = await Move.getMovesForLobby(lobby._id);
+
               ws.send(JSON.stringify({ 
                 type: 'joined_as_spectator', 
-                lobby: data.lobby
+                lobby: data.lobby,
+                gameState: lobby.gameState,
+                moves: moves
               }));
               
               // Notify all players in the lobby that a spectator joined
@@ -136,6 +145,81 @@ wss.on('connection', (ws) => {
           }
           break;
           
+        case 'join_lobby_by_id':
+          try {
+            const { ObjectId } = require('mongodb');
+            
+            // Converti la stringa dell'ID in ObjectId
+            const lobbyObjectId = new ObjectId(data.lobbyId);
+            
+            // Cerca la lobby per ID
+            const db = getDb();
+            const lobby = await db.collection('lobbies').findOne({ _id: lobbyObjectId });
+            
+            if (!lobby) {
+              throw new Error('Lobby does not exist');
+            }
+            
+            // Crea un'istanza della lobby
+            const lobbyInstance = new Lobby(lobby.name, lobby.creatorId);
+            lobbyInstance._id = lobby._id;
+            lobbyInstance.players = lobby.players || [];
+            lobbyInstance.spectators = lobby.spectators || [];
+            lobbyInstance.gameState = lobby.gameState || {
+              board: Array(9).fill(null),
+              currentTurn: 'X',
+              winner: null
+            };
+            
+            // Aggiungi il giocatore alla lobby
+            if (lobbyInstance.players.length >= 2) {
+              // Se la lobby è piena, unisciti come spettatore
+              await lobbyInstance.addSpectator(playerId);
+              player.setAsSpectator(lobby._id);
+              
+              // Ottieni tutte le mosse per questa lobby
+              const moves = await Move.getMovesForLobby(lobby._id);
+
+              ws.send(JSON.stringify({ 
+                type: 'joined_as_spectator', 
+                lobby: lobby.name,
+                gameState: lobby.gameState,
+                moves: moves
+              }));
+            } else {
+              // Unisciti come giocatore
+              const symbol = lobbyInstance.players.length === 0 ? 'X' : 'O';
+              await lobbyInstance.addPlayer(playerId, symbol);
+              player.setAsPlayer(lobby._id, symbol);
+              
+              ws.send(JSON.stringify({ 
+                type: 'lobby_joined', 
+                lobby: lobby.name,
+                symbol: symbol
+              }));
+              
+              // Notifica agli altri giocatori
+              if (symbol === 'O') {
+                const otherPlayer = lobbyInstance.players.find(p => p.id !== playerId);
+                if (otherPlayer) {
+                  const otherPlayerConnection = activePlayers.get(otherPlayer.id);
+                  if (otherPlayerConnection) {
+                    otherPlayerConnection.send({
+                      type: 'player_joined',
+                      opponentSymbol: 'O'
+                    });
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            ws.send(JSON.stringify({ 
+              type: 'error', 
+              message: error.message
+            }));
+          }
+          break;
+
         case 'get_lobbies':
           try {
             // Get all active lobbies with player counts
@@ -154,11 +238,23 @@ wss.on('connection', (ws) => {
           break;
         
         case 'move':
-          // Handle game moves
           if (player.isInLobby() && !player.isSpectator()) {
             try {
-              const lobby = await Lobby.findById(player.lobbyId);
+              const lobbyId = player.lobbyId;
+              const lobby = await Lobby.findById(lobbyId);
+              
               if (!lobby) throw new Error('Lobby not found');
+              
+              // Salva la mossa nel database
+              const lastMoveNumber = await Move.getLastMoveNumber(lobbyId);
+              const move = new Move({
+                lobbyId: new ObjectId(player.lobbyId),
+                playerId: playerId,
+                playerSymbol: player.symbol,
+                moveData: data.move,
+                moveNumber: lastMoveNumber + 1
+              });
+              await move.save();
               
               // Send move to other player
               const otherPlayer = lobby.players.find(p => p.id !== playerId);
@@ -189,6 +285,58 @@ wss.on('connection', (ws) => {
           }
           break;
 
+        case 'game_action':
+          if (player.isInLobby()) {
+            try {
+              const lobbyId = player.lobbyId;
+              const lobby = await Lobby.findById(lobbyId);
+              
+              if (!lobby) {
+                throw new Error('Lobby not found');
+              }
+              
+              // Verifica se è il turno del giocatore (opzionale, può essere gestito dal client)
+              if (data.requireTurnValidation && lobby.gameState.currentTurn !== player.id) {
+                throw new Error('Not your turn');
+              }
+              
+              // Aggiorna lo stato del gioco con l'azione del client
+              await db.collection('lobbies').updateOne(
+                { _id: new ObjectId(lobbyId) },
+                { $set: { "gameState.data": data.gameState } }
+              );
+              
+              // Se il client comunica un cambio di turno, lo registriamo
+              if (data.nextTurn) {
+                await db.collection('lobbies').updateOne(
+                  { _id: new ObjectId(lobbyId) },
+                  { $set: { "gameState.currentTurn": data.nextTurn } }
+                );
+              }
+              
+              // Trasmetti l'azione a tutti i giocatori e spettatori
+              lobby.players.forEach(p => {
+                const playerConnection = activePlayers.get(p.id);
+                if (playerConnection && p.id !== playerId) {
+                  playerConnection.send({
+                    type: 'game_action',
+                    playerId: playerId,
+                    action: data.action,
+                    gameState: data.gameState
+                  });
+                }
+              });
+              
+              // Trasmetti anche agli spettatori
+              lobby.spectators.forEach(s => {
+                // code for spectators
+              });
+            } catch (error) {
+              // gestione errori
+            }
+          }
+          break;
+
         case 'admin_auth':
           // Simple password authentication for admin
           if (data.password === 'admin') {  // Use a secure password in production
@@ -207,33 +355,37 @@ wss.on('connection', (ws) => {
           break;
 
         case 'admin_get_data':
-          // Only respond if this is an admin connection
           if (player.isAdmin) {
-            // Get all lobbies from MongoDB
             try {
               const lobbies = await Lobby.getActiveWithPlayerCounts();
               
-              // Format games data (from active lobbies with games)
+              // Format games data con alias dei giocatori
               const games = [];
               for (const lobby of lobbies) {
                 const lobbyDetail = await Lobby.findById(lobby.id);
-                if (lobbyDetail && lobbyDetail.players.length > 1) {
+                
+                if (lobbyDetail && lobbyDetail.players.length > 0) {
                   games.push({
                     lobbyId: lobby.id,
-                    playerX: lobbyDetail.players.find(p => p.symbol === 'X')?.id || 'N/A',
-                    playerO: lobbyDetail.players.find(p => p.symbol === 'O')?.id || 'N/A',
+                    players: lobbyDetail.players.map(p => ({
+                      id: p.id,
+                      symbol: p.symbol,
+                      alias: p.alias || `Player_${p.id.substring(0, 5)}`
+                    })),
+                    maxPlayers: lobbyDetail.maxPlayers || 2,
                     currentTurn: lobbyDetail.gameState.currentTurn
                   });
                 }
               }
               
-              // Format client data
+              // Format client data con alias
               const clients = Array.from(activePlayers.entries()).map(([id, player]) => ({
                 id: id,
+                alias: player.alias || `Client_${id.substring(0, 5)}`,
                 type: player.spectator ? 'Spectator' : (player.symbol ? `Player ${player.symbol}` : 'Unknown'),
                 lobbyId: player.lobbyId,
                 connectedAt: player.connectedAt || new Date(),
-                connected: player.connection.readyState === 1  // 1 = WebSocket.OPEN
+                connected: player.connection.readyState === 1
               }));
               
               ws.send(JSON.stringify({
@@ -256,7 +408,8 @@ wss.on('connection', (ws) => {
           // Only proceed if this is an admin connection
           if (player.isAdmin) {
             try {
-              const lobby = new Lobby(data.name, 'admin');
+              const maxPlayers = data.maxPlayers || 2;
+              const lobby = new Lobby(data.name, 'admin', maxPlayers);
               await lobby.save();
               
               ws.send(JSON.stringify({
@@ -351,6 +504,62 @@ wss.on('connection', (ws) => {
               ws.send(JSON.stringify({
                 type: 'error',
                 message: 'Failed to export database'
+              }));
+            }
+          }
+          break;
+
+        // Nel case 'admin_reset_game'
+        case 'admin_reset_game':
+          if (player.isAdmin) {
+            try {
+              const db = getDb();
+              const lobbyId = data.lobbyId;
+              
+              // Reset game state
+              await db.collection('lobbies').updateOne(
+                { _id: new ObjectId(lobbyId) },
+                { $set: { 
+                    gameState: {
+                      board: Array(9).fill(null),
+                      currentTurn: 'X',
+                      winner: null,
+                      status: 'waiting',
+                      data: {},
+                      lastUpdate: new Date()
+                    }
+                  } 
+                }
+              );
+              
+              // Clear all moves history
+              await Move.clearMovesForLobby(lobbyId);
+              
+              // Notify all connected players and spectators
+              const lobby = await Lobby.findById(lobbyId);
+              if (lobby) {
+                [...lobby.players, ...lobby.spectators].forEach(p => {
+                  const connection = activePlayers.get(p.id);
+                  if (connection) {
+                    connection.send({
+                      type: 'game_reset'
+                    });
+                  }
+                });
+              }
+              
+              ws.send(JSON.stringify({
+                type: 'game_reset_success',
+                lobbyId: lobbyId
+              }));
+              
+              // Refresh admin data
+              refreshData(ws, player);
+            } catch (error) {
+              console.error('Error resetting game:', error);
+              ws.send(JSON.stringify({
+                type: 'error',
+                message: 'Failed to reset game: ' + error.message
               }));
             }
           }

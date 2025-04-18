@@ -87,10 +87,26 @@
                     <div class="card-header bg-primary text-white">
                         <h5 class="card-title mb-0"><i class="bi bi-plus-circle"></i> Create Lobby</h5>
                     </div>
+                    <!-- Sostituisci il form esistente di creazione lobby -->
                     <div class="card-body">
-                        <form id="createLobbyForm" class="d-flex gap-2">
-                            <input type="text" id="lobbyName" class="form-control" placeholder="Lobby Name" required>
-                            <button type="submit" class="btn btn-primary">Create</button>
+                        <form id="createLobbyForm" class="d-flex flex-column gap-2">
+                            <div class="row g-2">
+                                <div class="col-md-8">
+                                    <input type="text" id="lobbyName" class="form-control" placeholder="Lobby Name" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <select id="maxPlayers" class="form-select">
+                                        <option value="2" selected>2 giocatori</option>
+                                        <option value="3">3 giocatori</option>
+                                        <option value="4">4 giocatori</option>
+                                        <option value="6">6 giocatori</option>
+                                        <option value="8">8 giocatori</option>
+                                        <option value="12">12 giocatori</option>
+                                        <option value="16">16 giocatori</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 mt-2">Create</button>
                         </form>
                     </div>
                 </div>
@@ -110,6 +126,7 @@
                                 <div class="col-md-6">
                                     <select id="gameType" class="form-select">
                                         <option value="tris" selected>Tris</option>
+                                        <option value="connectfour">Forza 4</option>
                                         <!-- Altri giochi futuri -->
                                     </select>
                                 </div>
@@ -415,6 +432,7 @@
                 cell.className = "text-center text-muted py-3";
                 cell.innerHTML = "<i class='bi bi-info-circle me-2'></i>No active lobbies";
             } else {
+                // Aggiorna la visualizzazione delle lobby nella funzione updateUI
                 lobbies.forEach(lobby => {
                     const row = lobbiesTable.insertRow();
                     const shortId = generateShortId(lobby.id);
@@ -425,16 +443,28 @@
                     idCell.dataset.originalId = lobby.id;
                     
                     row.insertCell(1).textContent = lobby.name;
-                    row.insertCell(2).textContent = typeof lobby.players === 'number' ? 
-                        `${lobby.players}/2` : `${lobby.players.length}/2`;
-                    row.insertCell(3).textContent = typeof lobby.spectators === 'number' ? 
-                        lobby.spectators : lobby.spectators.length;
+                    row.insertCell(2).textContent = `${lobby.players}/${lobby.maxPlayers || 2}`; // Mostra il numero massimo di giocatori
+                    row.insertCell(3).textContent = lobby.spectators;
                     
+                    // Status badge
                     const statusCell = row.insertCell(4);
-                    const status = lobby.status || (lobby.isFull ? 'Full' : 'Waiting');
-                    const badgeClass = status === 'Full' ? 'bg-success' : 'bg-warning';
-                    statusCell.innerHTML = `<span class="badge ${badgeClass}">${status}</span>`;
+                    let statusBadgeClass;
+                    let statusText;
                     
+                    if (lobby.players >= (lobby.maxPlayers || 2)) {
+                        statusBadgeClass = 'bg-danger';
+                        statusText = 'Full';
+                    } else if (lobby.players > 0) {
+                        statusBadgeClass = 'bg-success';
+                        statusText = 'Active';
+                    } else {
+                        statusBadgeClass = 'bg-warning';
+                        statusText = 'Empty';
+                    }
+                    
+                    statusCell.innerHTML = `<span class="badge ${statusBadgeClass}">${statusText}</span>`;
+                    
+                    // Aggiunta dei pulsanti di azione
                     const actionsCell = row.insertCell(5);
                     actionsCell.innerHTML = `
                         <button class="btn btn-sm btn-danger" onclick="deleteLobby('${lobby.id}')">
@@ -455,24 +485,33 @@
                 cell.className = "text-center text-muted py-3";
                 cell.innerHTML = "<i class='bi bi-controller me-2'></i>No active games";
             } else {
+                // Nella sezione updateUI dove viene popolata la tabella dei giochi
                 games.forEach(game => {
                     const row = gamesTable.insertRow();
                     const shortId = generateShortId(game.lobbyId);
                     
-                    // Display short ID but maintain original for operations
+                    // Display short ID
                     row.insertCell(0).textContent = shortId;
                     
-                    // Show game type (for now, it's always Tris)
-                    row.insertCell(1).textContent = "Tris";
+                    // Show game type based on game.gameType
+                    row.insertCell(1).textContent = game.gameType === "connectfour" ? "Forza 4" : "Tris";
                     
-                    // Show player count instead of individual players
-                    const playerCount = (game.playerX ? 1 : 0) + (game.playerO ? 1 : 0);
-                    row.insertCell(2).textContent = `${playerCount}/2`;
+                    // Resto del codice esistente...
+                    // Show players with their aliases
+                    const playersCell = row.insertCell(2);
+                    const playersList = game.players.map(p => 
+                        `${p.alias} (${p.symbol})`
+                    ).join(', ');
+                    playersCell.textContent = `${game.players.length}/${game.maxPlayers} - ${playersList}`;
                     
+                    // Show current turn with player alias
                     const turnCell = row.insertCell(3);
-                    const turnBadgeClass = game.currentTurn === 'X' ? 'bg-primary' : 'bg-success';
-                    turnCell.innerHTML = `<span class="badge ${turnBadgeClass}">Player ${game.currentTurn}</span>`;
+                    const currentPlayer = game.players.find(p => p.id === game.currentTurn);
+                    turnCell.innerHTML = currentPlayer ? 
+                        `<span class="badge bg-info">Turno: ${currentPlayer.alias}</span>` : 
+                        `<span class="badge bg-secondary">In attesa</span>`;
                     
+                    // Actions
                     const actionsCell = row.insertCell(4);
                     actionsCell.innerHTML = `
                         <button class="btn btn-sm btn-warning" onclick="resetGame('${game.lobbyId}')">
@@ -495,7 +534,7 @@
             } else {
                 clients.forEach(client => {
                     const row = clientsTable.insertRow();
-                    row.insertCell(0).textContent = client.id;
+                    row.insertCell(0).textContent = client.alias || client.id.substring(0, 8) + '...';
                     row.insertCell(1).textContent = client.type;
                     row.insertCell(2).textContent = client.lobbyId || 'N/A';
                     row.insertCell(3).textContent = new Date(client.connectedAt).toLocaleString();
@@ -510,9 +549,11 @@
         
         // Create a new lobby
         function createLobby(name) {
+            const maxPlayers = document.getElementById('maxPlayers').value;
             sendMessage({
                 type: 'admin_create_lobby',
-                name: name
+                name: name,
+                maxPlayers: parseInt(maxPlayers)
             });
         }
         
@@ -646,18 +687,25 @@
             }
         });
 
-        // Modifica questa funzione per entrare direttamente nella lobby
+        // Modifica questa funzione per gestire diversi tipi di gioco
         function joinLobby(lobbyId, gameType) {
-            // Genera l'ID corto per una migliore leggibilità nei log
             const shortId = generateShortId(lobbyId);
             
-            // Costruisci l'URL del client con il parametro lobbyId
-            const clientUrl = `tris.html?lobby=${lobbyId}`;
+            // Costruisci l'URL del client con il parametro lobbyId in base al tipo di gioco
+            let clientUrl;
+            switch (gameType) {
+                case 'connectfour':
+                    clientUrl = `connectfour.html?lobby=${lobbyId}`;
+                    break;
+                case 'tris':
+                default:
+                    clientUrl = `tris.html?lobby=${lobbyId}`;
+            }
             
             // Apri una nuova finestra/tab con il client
             window.open(clientUrl, '_blank');
             
-            log(`Aperta lobby ${shortId} in una nuova finestra`, 'success');
+            log(`Aperta lobby ${shortId} con gioco ${gameType} in una nuova finestra`, 'success');
         }
 
         // Initialize

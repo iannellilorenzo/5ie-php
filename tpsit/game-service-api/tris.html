@@ -59,6 +59,10 @@
                         <h1 class="h3 mb-0">Tris Online</h1>
                     </div>
                     <div class="card-body p-4">
+                        <!-- Aggiungi questo campo prima degli altri input -->
+                        <div class="input-group mb-3">
+                            <input type="text" id="playerAlias" class="form-control" placeholder="Il tuo nickname" maxlength="20">
+                        </div>
                         <div class="input-group mb-3">
                             <input type="text" id="lobbyName" class="form-control" placeholder="Nome della lobby">
                             <button id="createLobbyBtn" class="btn btn-success">Crea Lobby</button>
@@ -91,6 +95,19 @@
         let currentTurn = 'X'; // X inizia sempre
         let board = Array(9).fill(null);
         let gameActive = false;
+
+        // Controlla se è stato passato un ID lobby nell'URL
+        function checkUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const lobbyId = urlParams.get('lobby');
+            
+            if (lobbyId) {
+                // Memorizza l'ID della lobby per usarlo dopo che la connessione è stabilita
+                console.log("Found lobby ID in URL:", lobbyId);
+                return lobbyId;
+            }
+            return null;
+        }
 
         function createBoard() {
             const boardElement = document.getElementById('board');
@@ -185,9 +202,33 @@
                     break;
 
                 case 'joined_as_spectator':
-                    gameActive = false; // spectators don't play
+                    gameActive = false; // gli spettatori non giocano
                     document.getElementById('status').innerText = `Stai guardando la partita nella lobby: ${data.lobby}`;
                     showAlert('Ti sei unito come spettatore', 'info');
+                    
+                    // Resetta la board
+                    board = Array(9).fill(null);
+                    
+                    // Applica tutte le mosse passate per ricostruire lo stato del gioco
+                    if (data.moves && data.moves.length > 0) {
+                        data.moves.forEach(move => {
+                            if (move.moveData && move.moveData.index !== undefined) {
+                                board[move.moveData.index] = move.playerSymbol;
+                            }
+                        });
+                        updateBoard();
+                        
+                        // Controlla se c'è un vincitore (per aggiornamenti UI)
+                        const winner = checkWinner(board);
+                        if (winner) {
+                            document.getElementById('status').innerText = 
+                                `Partita finita: ${winner === 'draw' ? 'Pareggio' : `Ha vinto ${winner}`}`;
+                        } else {
+                            // Mostra di chi è il turno
+                            currentTurn = data.gameState.currentTurn;
+                            document.getElementById('turn-indicator').innerText = `Turno di: ${currentTurn}`;
+                        }
+                    }
                     break;
 
                 case 'game_move':
@@ -215,31 +256,49 @@
             }
         };
 
+        // Modifica alla funzione createLobby
         function createLobby() {
             const lobbyName = document.getElementById('lobbyName').value;
+            const alias = document.getElementById('playerAlias').value || `Giocatore_${Math.floor(Math.random() * 1000)}`;
+            
             if (lobbyName) {
-                socket.send(JSON.stringify({ type: 'create_lobby', lobby: lobbyName }));
+                socket.send(JSON.stringify({ 
+                    type: 'create_lobby', 
+                    lobby: lobbyName,
+                    alias: alias
+                }));
             } else {
                 showAlert('Inserisci un nome per la lobby', 'warning');
             }
         }
 
+        // Modifica alla funzione joinLobby
         function joinLobby() {
             const lobbyName = document.getElementById('lobbyName').value;
+            const alias = document.getElementById('playerAlias').value || `Giocatore_${Math.floor(Math.random() * 1000)}`;
+            
             if (lobbyName) {
-                socket.send(JSON.stringify({ type: 'join_lobby', lobby: lobbyName }));
+                socket.send(JSON.stringify({ 
+                    type: 'join_lobby', 
+                    lobby: lobbyName,
+                    alias: alias
+                }));
             } else {
                 showAlert('Inserisci il nome della lobby a cui vuoi unirti', 'warning');
             }
         }
 
+        // Modifica alla funzione joinAsSpectator
         function joinAsSpectator() {
             const lobbyName = document.getElementById('lobbyName').value;
+            const alias = document.getElementById('playerAlias').value || `Spettatore_${Math.floor(Math.random() * 1000)}`;
+            
             if (lobbyName) {
                 socket.send(JSON.stringify({ 
                     type: 'join_lobby', 
                     lobby: lobbyName,
-                    as_spectator: true
+                    as_spectator: true,
+                    alias: alias
                 }));
             } else {
                 showAlert('Inserisci il nome della lobby da guardare', 'warning');
@@ -317,12 +376,38 @@
             }, 3000);
         }
 
+        // Modifica all'evento onopen per la join con parametro URL
+        let playerAlias = '';
+
+        // All'avvio dell'applicazione
         document.addEventListener('DOMContentLoaded', () => {
             createBoard();
             document.getElementById('createLobbyBtn').addEventListener('click', createLobby);
             document.getElementById('joinLobbyBtn').addEventListener('click', joinLobby);
             document.getElementById('spectateBtn').addEventListener('click', joinAsSpectator);
+            
+            // Memorizza l'ID della lobby dai parametri URL
+            pendingLobbyId = checkUrlParams();
+            
+            // Genera un alias casuale di default
+            document.getElementById('playerAlias').value = `Giocatore_${Math.floor(Math.random() * 1000)}`;
         });
+
+        // Modifica l'evento onopen di socket
+        socket.onopen = () => {
+            console.log("WebSocket connection established");
+            
+            // Se abbiamo un ID lobby in attesa, unisciti automaticamente
+            if (pendingLobbyId) {
+                console.log("Joining lobby from URL parameter:", pendingLobbyId);
+                const alias = document.getElementById('playerAlias').value;
+                socket.send(JSON.stringify({ 
+                    type: 'join_lobby_by_id', 
+                    lobbyId: pendingLobbyId,
+                    alias: alias
+                }));
+            }
+        };
     </script>
 </body>
 </html>
