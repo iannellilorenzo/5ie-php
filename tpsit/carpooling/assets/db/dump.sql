@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS autisti (
     scadenza_patente DATE NOT NULL,
     numero_telefono VARCHAR(15) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
     fotografia VARCHAR(255)
 );
 
@@ -20,6 +21,7 @@ CREATE TABLE IF NOT EXISTS passeggeri (
     documento_identita VARCHAR(20) NOT NULL UNIQUE,
     telefono VARCHAR(15) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
     citta_partenza VARCHAR(50),
     citta_destinazione VARCHAR(50),
     data_desiderata DATE
