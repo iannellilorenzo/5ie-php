@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS automobili (
     marca VARCHAR(30) NOT NULL,
     modello VARCHAR(50) NOT NULL,
     id_autista INT NOT NULL,
-    FOREIGN KEY (id_autista) REFERENCES autista(id_autista) ON DELETE CASCADE
+    FOREIGN KEY (id_autista) REFERENCES autisti(id_autista) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS viaggi (
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS viaggi (
     bagaglio BOOLEAN DEFAULT FALSE,
     animali BOOLEAN DEFAULT FALSE,
     id_autista INT NOT NULL,
-    FOREIGN KEY (id_autista) REFERENCES autista(id_autista) ON DELETE CASCADE
+    FOREIGN KEY (id_autista) REFERENCES autisti(id_autista) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS prenotazioni (
@@ -55,6 +55,6 @@ CREATE TABLE IF NOT EXISTS prenotazioni (
     voto_passeggero TINYINT,
     feedback_autista TEXT,
     feedback_passeggero TEXT,
-    FOREIGN KEY (id_passeggero) REFERENCES passeggero(id_passeggero) ON DELETE CASCADE,
-    FOREIGN KEY (id_viaggio) REFERENCES viaggio(id_viaggio) ON DELETE CASCADE
+    FOREIGN KEY (id_passeggero) REFERENCES passeggeri(id_passeggero) ON DELETE CASCADE,
+    FOREIGN KEY (id_viaggio) REFERENCES viaggi(id_viaggio) ON DELETE CASCADE
 );
