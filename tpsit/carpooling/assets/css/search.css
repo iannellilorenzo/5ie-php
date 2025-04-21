@@ -1,0 +1,62 @@
+/* Search page specific styles */
+
+/* Timeline styling */
+.timeline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100px;
+}
+
+.timeline-start, .timeline-end {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    position: relative;
+}
+
+.timeline-line {
+    width: 2px;
+    height: 100%;
+    background-color: var(--primary-color);
+    flex-grow: 1;
+    margin: 4px 0;
+}
+
+.ride-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.ride-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.driver-avatar img {
+    border: 3px solid var(--primary-color);
+    padding: 2px;
+}
+
+.price-tag {
+    text-align: center;
+}
+
+/* Advanced search toggle animation */
+#advancedSearch {
+    transition: all 0.3s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767.98px) {
+    .timeline {
+        height: 60px;
+    }
+    
+    .col-md-3.border-end {
+        border-right: none !important;
+        border-bottom: 1px solid var(--border-color);
+    }
+}

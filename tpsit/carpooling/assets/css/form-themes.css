@@ -1,0 +1,11 @@
+/* Base form styling that works in both themes */
+.card {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.form-control,
+.form-select,
+.input-group-text {
+    transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+}

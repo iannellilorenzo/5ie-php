@@ -1,0 +1,19 @@
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# Prevent direct access to PHP files other than index.php
+RewriteCond %{THE_REQUEST} ^.*/[^/]+\.php
+RewriteRule ^(.+)\.php$ - [F,L]
+
+# Set security headers
+Header set X-Content-Type-Options "nosniff"
+Header set X-XSS-Protection "1; mode=block"
+Header set X-Frame-Options "SAMEORIGIN"
+Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+# Add CORS headers
+Header set Access-Control-Allow-Origin "*"
+Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+Header set Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization"
