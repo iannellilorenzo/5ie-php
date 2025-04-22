@@ -12,32 +12,20 @@ class Autista {
      */
     public function getAll($filters = []) {
         try {
-            // Start with base query
+            // Start with base query that matches the actual database schema
             $query = "SELECT 
-                        a.id, a.nome, a.cognome, a.email, a.telefono, 
-                        a.data_nascita, a.citta, a.valutazione, a.bio, 
-                        a.foto_profilo, a.data_registrazione
+                        a.id_autista, a.nome, a.cognome, a.data_nascita, 
+                        a.numero_patente, a.scadenza_patente, a.numero_telefono, 
+                        a.email, a.fotografia
                     FROM " . $this->table . " a";
             
             // Add WHERE conditions for filters
             $whereConditions = [];
             $params = [];
             
-            if (isset($filters['city'])) {
-                $whereConditions[] = "a.citta = ?";
-                $params[] = $filters['city'];
-            }
-            
-            if (isset($filters['rating'])) {
-                $whereConditions[] = "a.valutazione >= ?";
-                $params[] = $filters['rating'];
-            }
-            
             if (!empty($whereConditions)) {
                 $query .= " WHERE " . implode(" AND ", $whereConditions);
             }
-            
-            $query .= " ORDER BY a.valutazione DESC";
             
             $stmt = $this->conn->prepare($query);
             $stmt->execute($params);
@@ -54,11 +42,11 @@ class Autista {
     public function getById($id) {
         try {
             $query = "SELECT 
-                        a.id, a.nome, a.cognome, a.email, a.telefono, 
-                        a.data_nascita, a.citta, a.valutazione, a.bio, 
-                        a.foto_profilo, a.data_registrazione
+                        a.id_autista, a.nome, a.cognome, a.data_nascita,
+                        a.numero_patente, a.scadenza_patente, a.numero_telefono, 
+                        a.email, a.fotografia
                     FROM " . $this->table . " a
-                    WHERE a.id = ?";
+                    WHERE a.id_autista = ?";
                     
             $stmt = $this->conn->prepare($query);
             $stmt->execute([$id]);
@@ -68,15 +56,7 @@ class Autista {
             if (!$driver) {
                 return null;
             }
-            
-            // Get driver's cars
-            $carsQuery = "SELECT * FROM automobili WHERE autista_id = ?";
-            $carsStmt = $this->conn->prepare($carsQuery);
-            $carsStmt->execute([$id]);
-            $cars = $carsStmt->fetchAll();
-            
-            $driver['automobili'] = $cars;
-            
+
             return $driver;
         } catch (PDOException $e) {
             throw new Exception($e->getMessage());
@@ -88,39 +68,60 @@ class Autista {
      */
     public function create($data) {
         try {
+            include_once __DIR__ . '/../utils/validation.php';
+
             // Validate required fields
-            $requiredFields = ['nome', 'cognome', 'email', 'password', 'telefono', 'data_nascita', 'citta'];
+            $requiredFields = ['nome', 'cognome', 'data_nascita', 'numero_patente', 'scadenza_patente', 'numero_telefono', 'email', 'password'];
             validateRequired($data, $requiredFields);
             
             // Validate email
             validateEmail($data['email']);
             
-            // Check if email already exists
-            $checkQuery = "SELECT COUNT(*) FROM " . $this->table . " WHERE email = ?";
-            $checkStmt = $this->conn->prepare($checkQuery);
-            $checkStmt->execute([$data['email']]);
+            // Check if email, phone or license already exists
+            $checkEmailQuery = "SELECT COUNT(*) FROM " . $this->table . " WHERE email = ?";
+            $checkEmailStmt = $this->conn->prepare($checkEmailQuery);
+            $checkEmailStmt->execute([$data['email']]);
             
-            if ($checkStmt->fetchColumn() > 0) {
+            if ($checkEmailStmt->fetchColumn() > 0) {
                 throw new Exception("Email already exists");
+            }
+            
+            $checkPhoneQuery = "SELECT COUNT(*) FROM " . $this->table . " WHERE numero_telefono = ?";
+            $checkPhoneStmt = $this->conn->prepare($checkPhoneQuery);
+            $checkPhoneStmt->execute([$data['numero_telefono']]);
+            
+            if ($checkPhoneStmt->fetchColumn() > 0) {
+                throw new Exception("Phone number already exists");
+            }
+            
+            $checkLicenseQuery = "SELECT COUNT(*) FROM " . $this->table . " WHERE numero_patente = ?";
+            $checkLicenseStmt = $this->conn->prepare($checkLicenseQuery);
+            $checkLicenseStmt->execute([$data['numero_patente']]);
+            
+            if ($checkLicenseStmt->fetchColumn() > 0) {
+                throw new Exception("License number already exists");
             }
             
             // Hash password
             $hashedPassword = password_hash($data['password'], PASSWORD_ARGON2ID);
             
+            // Query corretta che rispetta la struttura della tabella
             $query = "INSERT INTO " . $this->table . " 
-                      (nome, cognome, email, password, telefono, data_nascita, citta, bio)
-                      VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                      (nome, cognome, data_nascita, numero_patente, scadenza_patente, 
+                      numero_telefono, email, password, fotografia)
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
                       
             $stmt = $this->conn->prepare($query);
             $stmt->execute([
                 $data['nome'],
                 $data['cognome'],
+                $data['data_nascita'],
+                $data['numero_patente'],
+                $data['scadenza_patente'],
+                $data['numero_telefono'],
                 $data['email'],
                 $hashedPassword,
-                $data['telefono'],
-                $data['data_nascita'],
-                $data['citta'],
-                $data['bio'] ?? null
+                $data['fotografia'] ?? null
             ]);
             
             return $this->conn->lastInsertId();
@@ -134,8 +135,8 @@ class Autista {
      */
     public function update($id, $data) {
         try {
-            // Check if driver exists
-            $checkQuery = "SELECT COUNT(*) FROM " . $this->table . " WHERE id = ?";
+            // Check if driver exists using the correct column name id_autista
+            $checkQuery = "SELECT COUNT(*) FROM " . $this->table . " WHERE id_autista = ?";
             $checkStmt = $this->conn->prepare($checkQuery);
             $checkStmt->execute([$id]);
             
@@ -147,7 +148,7 @@ class Autista {
             $fields = [];
             $params = [];
             
-            // Only update fields that were provided
+            // Only update fields that were provided, matching database schema
             if (isset($data['nome'])) {
                 $fields[] = "nome = ?";
                 $params[] = $data['nome'];
@@ -158,19 +159,29 @@ class Autista {
                 $params[] = $data['cognome'];
             }
             
-            if (isset($data['telefono'])) {
-                $fields[] = "telefono = ?";
-                $params[] = $data['telefono'];
+            if (isset($data['data_nascita'])) {
+                $fields[] = "data_nascita = ?";
+                $params[] = $data['data_nascita'];
             }
             
-            if (isset($data['citta'])) {
-                $fields[] = "citta = ?";
-                $params[] = $data['citta'];
+            if (isset($data['numero_patente'])) {
+                $fields[] = "numero_patente = ?";
+                $params[] = $data['numero_patente'];
             }
             
-            if (isset($data['bio'])) {
-                $fields[] = "bio = ?";
-                $params[] = $data['bio'];
+            if (isset($data['scadenza_patente'])) {
+                $fields[] = "scadenza_patente = ?";
+                $params[] = $data['scadenza_patente'];
+            }
+            
+            if (isset($data['numero_telefono'])) {
+                $fields[] = "numero_telefono = ?";
+                $params[] = $data['numero_telefono'];
+            }
+            
+            if (isset($data['email'])) {
+                $fields[] = "email = ?";
+                $params[] = $data['email'];
             }
             
             if (isset($data['password'])) {
@@ -178,10 +189,15 @@ class Autista {
                 $params[] = password_hash($data['password'], PASSWORD_ARGON2ID);
             }
             
+            if (isset($data['fotografia'])) {
+                $fields[] = "fotografia = ?";
+                $params[] = $data['fotografia'];
+            }
+            
             // Add ID to params array
             $params[] = $id;
             
-            $query = "UPDATE " . $this->table . " SET " . implode(", ", $fields) . " WHERE id = ?";
+            $query = "UPDATE " . $this->table . " SET " . implode(", ", $fields) . " WHERE id_autista = ?";
             $stmt = $this->conn->prepare($query);
             $stmt->execute($params);
             
@@ -196,8 +212,8 @@ class Autista {
      */
     public function delete($id) {
         try {
-            // Check if driver exists
-            $checkQuery = "SELECT COUNT(*) FROM " . $this->table . " WHERE id = ?";
+            // Check if driver exists using the correct column name id_autista
+            $checkQuery = "SELECT COUNT(*) FROM " . $this->table . " WHERE id_autista = ?";
             $checkStmt = $this->conn->prepare($checkQuery);
             $checkStmt->execute([$id]);
             
@@ -206,7 +222,7 @@ class Autista {
             }
             
             // Check for related records in other tables
-            $checkTripsQuery = "SELECT COUNT(*) FROM viaggi WHERE autista_id = ?";
+            $checkTripsQuery = "SELECT COUNT(*) FROM viaggi WHERE id_autista = ?";
             $checkTripsStmt = $this->conn->prepare($checkTripsQuery);
             $checkTripsStmt->execute([$id]);
             
@@ -214,13 +230,8 @@ class Autista {
                 throw new Exception("Cannot delete driver with active trips");
             }
             
-            // Delete related cars
-            $deleteCarsQuery = "DELETE FROM automobili WHERE autista_id = ?";
-            $deleteCarsStmt = $this->conn->prepare($deleteCarsQuery);
-            $deleteCarsStmt->execute([$id]);
-            
             // Delete driver
-            $query = "DELETE FROM " . $this->table . " WHERE id = ?";
+            $query = "DELETE FROM " . $this->table . " WHERE id_autista = ?";
             $stmt = $this->conn->prepare($query);
             $stmt->execute([$id]);
             

@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         try {
             // Connect to database
-            require_once $rootPath . 'config/database.php';
+            require_once $rootPath . 'api/config/database.php';
             $db = new Database();
             $conn = $db->getConnection();
             
@@ -88,6 +88,10 @@ include $rootPath . 'includes/header.php';
 
 // Include navbar
 include $rootPath . 'includes/navbar.php';
+
+if (isset($_GET['logout']) && $_GET['logout'] == 'success') {
+    echo '<div id="logoutAlert" class="alert alert-success">You have been successfully logged out.</div>';
+}
 ?>
 
 <!-- Login Section -->
@@ -239,6 +243,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Auto-hide logout alert after 2 seconds
+    const logoutAlert = document.getElementById('logoutAlert');
+    if (logoutAlert) {
+        setTimeout(() => {
+            // Use Bootstrap's alert dismiss functionality
+            const bsAlert = new bootstrap.Alert(logoutAlert);
+            bsAlert.close();
+        }, 2000); // 2000 milliseconds = 2 seconds
+    }
 });
 </script>
 

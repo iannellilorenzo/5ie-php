@@ -28,8 +28,7 @@ $formData = [
     'cognome' => '',
     'email' => '',
     'telefono' => '',
-    'data_nascita' => '',
-    'citta' => ''
+    'documento_identita' => ''
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -38,8 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formData['cognome'] = trim(filter_input(INPUT_POST, 'cognome', FILTER_SANITIZE_SPECIAL_CHARS));
     $formData['email'] = trim(filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL));
     $formData['telefono'] = trim(filter_input(INPUT_POST, 'telefono', FILTER_SANITIZE_SPECIAL_CHARS));
-    $formData['data_nascita'] = trim(filter_input(INPUT_POST, 'data_nascita', FILTER_SANITIZE_SPECIAL_CHARS));
-    $formData['citta'] = trim(filter_input(INPUT_POST, 'citta', FILTER_SANITIZE_SPECIAL_CHARS));
+    $formData['documento_identita'] = trim(filter_input(INPUT_POST, 'documento_identita', FILTER_SANITIZE_SPECIAL_CHARS));
     $password = $_POST['password'] ?? '';
     $confirmPassword = $_POST['confirm_password'] ?? '';
     $userType = filter_input(INPUT_POST, 'user_type', FILTER_SANITIZE_SPECIAL_CHARS);
@@ -47,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validate required fields
     if (empty($formData['nome'])) $errors[] = "First name is required";
     if (empty($formData['cognome'])) $errors[] = "Last name is required";
+    if (empty($formData['documento_identita'])) $errors[] = "Identity document is required";
     if (empty($formData['email'])) {
         $errors[] = "Email is required";
     } elseif (!filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) {
@@ -69,47 +68,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db = new Database();
             $conn = $db->getConnection();
             
-            // Check if email already exists
-            $stmt = $conn->prepare("SELECT COUNT(*) FROM passeggeri WHERE email = ?");
-            $stmt->execute([$formData['email']]);
-            if ($stmt->fetchColumn() > 0) {
-                $errors[] = "Email already registered. Please use a different email or login.";
-            } else {
-                // Hash password
-                $hashedPassword = password_hash($password, PASSWORD_ARGON2ID);
-                
-                // Insert new user
-                $stmt = $conn->prepare("
-                    INSERT INTO passeggeri (nome, cognome, email, password, telefono, data_nascita, citta) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                ");
-                
-                $stmt->execute([
-                    $formData['nome'],
-                    $formData['cognome'],
-                    $formData['email'],
-                    $hashedPassword,
-                    $formData['telefono'],
-                    empty($formData['data_nascita']) ? null : $formData['data_nascita'],
-                    empty($formData['citta']) ? null : $formData['citta']
-                ]);
-                
-                // Get the new user ID
-                $userId = $conn->lastInsertId();
-                
-                // Set session variables
-                $_SESSION['user_id'] = $userId;
-                $_SESSION['user_name'] = $formData['nome'] . ' ' . $formData['cognome'];
-                $_SESSION['user_type'] = 'passeggero';
-                
-                // Redirect to dashboard or appropriate page
-                $success = true;
-                
-                // Optional: redirect to dashboard after successful registration
-                // header("Location: {$rootPath}pages/passeggero/dashboard.php");
-                // exit();
-            }
-        } catch (PDOException $e) {
+            // Use the model for registration
+            require_once $rootPath . '/api/models/Passeggero.php';
+            $passeggeroModel = new Passeggero($conn);
+            
+            // Create user data array
+            $userData = [
+                'nome' => $formData['nome'],
+                'cognome' => $formData['cognome'],
+                'documento_identita' => $formData['documento_identita'],
+                'telefono' => $formData['telefono'],
+                'email' => $formData['email'],
+                'password' => $password
+            ];
+            
+            // Let the model handle insertion
+            $userId = $passeggeroModel->create($userData);
+            
+            // Set session variables
+            $_SESSION['user_id'] = $userId;
+            $_SESSION['user_name'] = $formData['nome'] . ' ' . $formData['cognome'];
+            $_SESSION['user_type'] = 'passeggero';
+            
+            // Redirect to dashboard
+            header("Location: {$rootPath}pages/passeggero/dashboard.php");
+            exit(); // Important to prevent any further code execution
+            
+        } catch (Exception $e) {
             $errors[] = "Registration failed: " . $e->getMessage();
         }
     }
@@ -190,6 +175,15 @@ include $rootPath . 'includes/navbar.php';
                                     <div class="invalid-feedback">Phone number is required</div>
                                 </div>
                                 
+                                <!-- Add this after phone number field -->
+                                <div class="mb-3">
+                                    <label for="documento_identita" class="form-label">ID Document Number</label>
+                                    <input type="text" class="form-control" id="documento_identita" name="documento_identita" 
+                                           value="<?= htmlspecialchars($formData['documento_identita']) ?>" required>
+                                    <div class="form-text">National ID, passport, or driver's license number</div>
+                                    <div class="invalid-feedback">ID document number is required</div>
+                                </div>
+                                
                                 <!-- Password Fields -->
                                 <div class="row g-3 mb-3">
                                     <div class="col-md-6">
@@ -207,18 +201,6 @@ include $rootPath . 'includes/navbar.php';
                                         <label for="confirm_password" class="form-label">Confirm Password</label>
                                         <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
                                         <div class="invalid-feedback">Passwords must match</div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Optional Fields -->
-                                <div class="row g-3 mb-3">
-                                    <div class="col-md-6">
-                                        <label for="data_nascita" class="form-label">Date of Birth <span class="text-muted">(Optional)</span></label>
-                                        <input type="date" class="form-control" id="data_nascita" name="data_nascita" value="<?= htmlspecialchars($formData['data_nascita']) ?>">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="citta" class="form-label">City <span class="text-muted">(Optional)</span></label>
-                                        <input type="text" class="form-control" id="citta" name="citta" value="<?= htmlspecialchars($formData['citta']) ?>">
                                     </div>
                                 </div>
                                 

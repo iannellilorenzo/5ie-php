@@ -178,18 +178,17 @@ $searchPassengers = $_GET['passengers'] ?? 1;
                             <label class="form-label">Features</label>
                             <div class="d-flex flex-wrap gap-3">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="ac" name="features[]" value="ac">
-                                    <label class="form-check-label" for="ac">Air conditioning</label>
+                                    <input class="form-check-input" type="checkbox" id="soste" name="features[]" value="soste">
+                                    <label class="form-check-label" for="soste">Stops along the way</label>
                                 </div>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="wifi" name="features[]" value="wifi">
-                                    <label class="form-check-label" for="wifi">WiFi</label>
+                                    <input class="form-check-input" type="checkbox" id="bagaglio" name="features[]" value="bagaglio">
+                                    <label class="form-check-label" for="bagaglio">Luggage allowed</label>
                                 </div>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="pets" name="features[]" value="pets">
-                                    <label class="form-check-label" for="pets">Pets allowed</label>
+                                    <input class="form-check-input" type="checkbox" id="animali" name="features[]" value="animali">
+                                    <label class="form-check-label" for="animali">Pets allowed</label>
                                 </div>
-                                <!-- Removed "no smoking" option -->
                             </div>
                         </div>
                     </div>

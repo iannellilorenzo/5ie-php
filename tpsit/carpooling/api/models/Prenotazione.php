@@ -278,4 +278,27 @@ class Prenotazione {
             throw new Exception($e->getMessage());
         }
     }
+
+    public function getBookingsByPassengerId($passengerId) {
+        try {
+            $query = "SELECT 
+                        p.id_prenotazione as id, p.id_viaggio, p.stato,
+                        v.citta_partenza as partenza, v.citta_destinazione as destinazione, 
+                        v.timestamp_partenza as data_partenza,
+                        a.nome as nome_autista, a.cognome as cognome_autista,
+                        v.prezzo_cadauno as prezzo
+                    FROM " . $this->table . " p
+                    JOIN viaggi v ON p.id_viaggio = v.id_viaggio
+                    JOIN autisti a ON v.id_autista = a.id_autista
+                    WHERE p.id_passeggero = ?
+                    ORDER BY v.timestamp_partenza";
+                    
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute([$passengerId]);
+            
+            return $stmt->fetchAll();
+        } catch (PDOException $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
 }

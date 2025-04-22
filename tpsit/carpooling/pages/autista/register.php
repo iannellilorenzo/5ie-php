@@ -27,13 +27,11 @@ $formData = [
     'nome' => '',
     'cognome' => '',
     'email' => '',
-    'telefono' => '',
+    'numero_telefono' => '',
     'data_nascita' => '',
-    'citta' => '',
-    'bio' => '',
-    'patente_numero' => '',
-    'patente_tipo' => '',
-    'patente_scadenza' => ''
+    'numero_patente' => '',
+    'scadenza_patente' => '',
+    'fotografia' => ''
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -41,13 +39,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formData['nome'] = trim(filter_input(INPUT_POST, 'nome', FILTER_SANITIZE_SPECIAL_CHARS));
     $formData['cognome'] = trim(filter_input(INPUT_POST, 'cognome', FILTER_SANITIZE_SPECIAL_CHARS));
     $formData['email'] = trim(filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL));
-    $formData['telefono'] = trim(filter_input(INPUT_POST, 'telefono', FILTER_SANITIZE_SPECIAL_CHARS));
+    $formData['numero_telefono'] = trim(filter_input(INPUT_POST, 'numero_telefono', FILTER_SANITIZE_SPECIAL_CHARS));
     $formData['data_nascita'] = trim(filter_input(INPUT_POST, 'data_nascita', FILTER_SANITIZE_SPECIAL_CHARS));
-    $formData['citta'] = trim(filter_input(INPUT_POST, 'citta', FILTER_SANITIZE_SPECIAL_CHARS));
-    $formData['bio'] = trim(filter_input(INPUT_POST, 'bio', FILTER_SANITIZE_SPECIAL_CHARS));
-    $formData['patente_numero'] = trim(filter_input(INPUT_POST, 'patente_numero', FILTER_SANITIZE_SPECIAL_CHARS));
-    $formData['patente_tipo'] = trim(filter_input(INPUT_POST, 'patente_tipo', FILTER_SANITIZE_SPECIAL_CHARS));
-    $formData['patente_scadenza'] = trim(filter_input(INPUT_POST, 'patente_scadenza', FILTER_SANITIZE_SPECIAL_CHARS));
+    $formData['numero_patente'] = trim(filter_input(INPUT_POST, 'numero_patente', FILTER_SANITIZE_SPECIAL_CHARS));
+    $formData['scadenza_patente'] = trim(filter_input(INPUT_POST, 'scadenza_patente', FILTER_SANITIZE_SPECIAL_CHARS));
+    
+    // Handle file upload for fotografia
+    $formData['fotografia'] = null;
+    if (isset($_FILES['fotografia']) && $_FILES['fotografia']['error'] == 0) {
+        $uploadDir = $rootPath . 'uploads/drivers/';
+        if (!file_exists($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+        
+        $filename = time() . '_' . $_FILES['fotografia']['name'];
+        if (move_uploaded_file($_FILES['fotografia']['tmp_name'], $uploadDir . $filename)) {
+            $formData['fotografia'] = 'uploads/drivers/' . $filename;
+        }
+    }
     
     $password = $_POST['password'] ?? '';
     $confirmPassword = $_POST['confirm_password'] ?? '';
@@ -60,12 +69,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = "Please enter a valid email address";
     }
-    if (empty($formData['telefono'])) $errors[] = "Phone number is required";
+    if (empty($formData['numero_telefono'])) $errors[] = "Phone number is required";
     if (empty($formData['data_nascita'])) $errors[] = "Date of birth is required";
-    if (empty($formData['citta'])) $errors[] = "City is required";
-    if (empty($formData['patente_numero'])) $errors[] = "Driver's license number is required";
-    if (empty($formData['patente_tipo'])) $errors[] = "Driver's license type is required";
-    if (empty($formData['patente_scadenza'])) $errors[] = "Driver's license expiration date is required";
+    if (empty($formData['numero_patente'])) $errors[] = "Driver's license number is required";
+    if (empty($formData['scadenza_patente'])) $errors[] = "Driver's license expiration date is required";
     
     // Validate password
     if (empty($password)) {
@@ -80,52 +87,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         try {
             // Connect to database
-            require_once $rootPath . 'config/database.php';
+            require_once $rootPath . '/api/config/database.php';
             $db = new Database();
             $conn = $db->getConnection();
             
-            // Check if email already exists
-            $stmt = $conn->prepare("SELECT COUNT(*) FROM autisti WHERE email = ?");
-            $stmt->execute([$formData['email']]);
-            if ($stmt->fetchColumn() > 0) {
-                $errors[] = "Email already registered. Please use a different email or login.";
-            } else {
-                // Hash password
-                $hashedPassword = password_hash($password, PASSWORD_ARGON2ID);
-                
-                // Insert new driver
-                $stmt = $conn->prepare("
-                    INSERT INTO autisti (
-                        nome, cognome, email, password, telefono, data_nascita, citta, 
-                        bio, patente_numero, patente_tipo, patente_scadenza
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ");
-                
-                $stmt->execute([
-                    $formData['nome'],
-                    $formData['cognome'],
-                    $formData['email'],
-                    $hashedPassword,
-                    $formData['telefono'],
-                    $formData['data_nascita'],
-                    $formData['citta'],
-                    $formData['bio'],
-                    $formData['patente_numero'],
-                    $formData['patente_tipo'],
-                    $formData['patente_scadenza']
-                ]);
-                
-                // Get the new user ID
-                $userId = $conn->lastInsertId();
-                
-                // Set session variables
-                $_SESSION['user_id'] = $userId;
-                $_SESSION['user_name'] = $formData['nome'] . ' ' . $formData['cognome'];
-                $_SESSION['user_type'] = 'autista';
-                
-                // Redirect to dashboard or appropriate page
-                $success = true;
-            }
+            // OPTION 1: Use the Autista model
+            require_once $rootPath . '/api/models/Autista.php';
+            $autistaModel = new Autista($conn);
+            
+            // Create user data array
+            $userData = [
+                'nome' => $formData['nome'],
+                'cognome' => $formData['cognome'],
+                'email' => $formData['email'],
+                'password' => $password,
+                'numero_telefono' => $formData['numero_telefono'],
+                'data_nascita' => $formData['data_nascita'],
+                'numero_patente' => $formData['numero_patente'],
+                'scadenza_patente' => $formData['scadenza_patente'],
+                'fotografia' => $formData['fotografia']
+            ];
+            
+            // Let the model handle insertion
+            $userId = $autistaModel->create($userData);
+            
+            // Set session variables
+            $_SESSION['user_id'] = $userId;
+            $_SESSION['user_name'] = $formData['nome'] . ' ' . $formData['cognome'];
+            $_SESSION['user_type'] = 'autista';
+            
+            // Redirect to dashboard or appropriate page
+            $success = true;
         } catch (PDOException $e) {
             $errors[] = "Registration failed: " . $e->getMessage();
         }
@@ -177,7 +169,7 @@ include $rootPath . 'includes/navbar.php';
                             <?php endif; ?>
                             
                             <!-- Registration Form -->
-                            <form action="<?= htmlspecialchars($_SERVER["PHP_SELF"]) ?>" method="POST" class="needs-validation" novalidate>
+                            <form action="<?= htmlspecialchars($_SERVER["PHP_SELF"]) ?>" method="POST" class="needs-validation" enctype="multipart/form-data" novalidate>
                                 <!-- Tabs for form sections -->
                                 <ul class="nav nav-tabs mb-4" id="registerTabs" role="tablist">
                                     <li class="nav-item" role="presentation">
@@ -215,8 +207,8 @@ include $rootPath . 'includes/navbar.php';
                                                 <div class="invalid-feedback">Please provide a valid email address</div>
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="telefono" class="form-label">Phone Number</label>
-                                                <input type="tel" class="form-control" id="telefono" name="telefono" value="<?= htmlspecialchars($formData['telefono']) ?>" required>
+                                                <label for="numero_telefono" class="form-label">Phone Number</label>
+                                                <input type="tel" class="form-control" id="numero_telefono" name="numero_telefono" value="<?= htmlspecialchars($formData['numero_telefono']) ?>" required>
                                                 <div class="invalid-feedback">Phone number is required</div>
                                             </div>
                                         </div>
@@ -227,16 +219,12 @@ include $rootPath . 'includes/navbar.php';
                                                 <input type="date" class="form-control" id="data_nascita" name="data_nascita" value="<?= htmlspecialchars($formData['data_nascita']) ?>" required>
                                                 <div class="invalid-feedback">Date of birth is required</div>
                                             </div>
-                                            <div class="col-md-6">
-                                                <label for="citta" class="form-label">City</label>
-                                                <input type="text" class="form-control" id="citta" name="citta" value="<?= htmlspecialchars($formData['citta']) ?>" required>
-                                                <div class="invalid-feedback">City is required</div>
-                                            </div>
                                         </div>
                                         
                                         <div class="mt-3">
-                                            <label for="bio" class="form-label">Bio <span class="text-muted">(Tell passengers about yourself)</span></label>
-                                            <textarea class="form-control" id="bio" name="bio" rows="3"><?= htmlspecialchars($formData['bio']) ?></textarea>
+                                            <label for="fotografia" class="form-label">Profile Photo <span class="text-muted">(Optional)</span></label>
+                                            <input type="file" class="form-control" id="fotografia" name="fotografia">
+                                            <div class="form-text">Upload a clear photo of yourself (Max 2MB)</div>
                                         </div>
                                         
                                         <div class="d-flex justify-content-end mt-4">
@@ -253,26 +241,15 @@ include $rootPath . 'includes/navbar.php';
                                         
                                         <div class="row g-3">
                                             <div class="col-md-6">
-                                                <label for="patente_numero" class="form-label">License Number</label>
-                                                <input type="text" class="form-control" id="patente_numero" name="patente_numero" value="<?= htmlspecialchars($formData['patente_numero']) ?>" required>
+                                                <label for="numero_patente" class="form-label">License Number</label>
+                                                <input type="text" class="form-control" id="numero_patente" name="numero_patente" value="<?= htmlspecialchars($formData['numero_patente']) ?>" required>
                                                 <div class="invalid-feedback">License number is required</div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label for="patente_tipo" class="form-label">License Type</label>
-                                                <select class="form-select" id="patente_tipo" name="patente_tipo" required>
-                                                    <option value="" disabled <?= empty($formData['patente_tipo']) ? 'selected' : '' ?>>Select license type</option>
-                                                    <option value="B" <?= $formData['patente_tipo'] === 'B' ? 'selected' : '' ?>>B (Standard car)</option>
-                                                    <option value="A" <?= $formData['patente_tipo'] === 'A' ? 'selected' : '' ?>>A (Motorcycle)</option>
-                                                    <option value="C" <?= $formData['patente_tipo'] === 'C' ? 'selected' : '' ?>>C (Commercial)</option>
-                                                    <option value="D" <?= $formData['patente_tipo'] === 'D' ? 'selected' : '' ?>>D (Bus)</option>
-                                                </select>
-                                                <div class="invalid-feedback">Please select a license type</div>
                                             </div>
                                         </div>
                                         
                                         <div class="mt-3">
-                                            <label for="patente_scadenza" class="form-label">License Expiration Date</label>
-                                            <input type="date" class="form-control" id="patente_scadenza" name="patente_scadenza" value="<?= htmlspecialchars($formData['patente_scadenza']) ?>" required>
+                                            <label for="scadenza_patente" class="form-label">License Expiration Date</label>
+                                            <input type="date" class="form-control" id="scadenza_patente" name="scadenza_patente" value="<?= htmlspecialchars($formData['scadenza_patente']) ?>" required>
                                             <div class="invalid-feedback">Expiration date is required</div>
                                         </div>
                                         

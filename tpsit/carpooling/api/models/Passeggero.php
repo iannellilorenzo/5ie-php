@@ -39,11 +39,10 @@ class Passeggero {
     public function getById($id) {
         try {
             $query = "SELECT 
-                        p.id, p.nome, p.cognome, p.email, p.telefono, 
-                        p.data_nascita, p.citta, p.bio, p.foto_profilo, 
-                        p.data_registrazione
+                        p.id_passeggero, p.nome, p.cognome, p.email,
+                        p.documento_identita, p.telefono
                     FROM " . $this->table . " p
-                    WHERE p.id = ?";
+                    WHERE p.id_passeggero = ?";
                     
             $stmt = $this->conn->prepare($query);
             $stmt->execute([$id]);
@@ -53,21 +52,7 @@ class Passeggero {
             if (!$passenger) {
                 return null;
             }
-            
-            // Get passenger's bookings
-            $bookingsQuery = "SELECT 
-                                pr.id, pr.viaggio_id, pr.stato, pr.n_posti, 
-                                pr.data_prenotazione, v.partenza, v.destinazione, 
-                                v.data_partenza, v.ora_partenza
-                              FROM prenotazioni pr
-                              JOIN viaggi v ON pr.viaggio_id = v.id
-                              WHERE pr.passeggero_id = ?";
-            $bookingsStmt = $this->conn->prepare($bookingsQuery);
-            $bookingsStmt->execute([$id]);
-            $bookings = $bookingsStmt->fetchAll();
-            
-            $passenger['prenotazioni'] = $bookings;
-            
+
             return $passenger;
         } catch (PDOException $e) {
             throw new Exception($e->getMessage());
@@ -76,7 +61,9 @@ class Passeggero {
     
     public function create($data) {
         try {
-            $requiredFields = ['nome', 'cognome', 'email', 'password', 'telefono', 'data_nascita', 'citta'];
+            include_once __DIR__ . '/../utils/validation.php';
+
+            $requiredFields = ['nome', 'cognome', 'documento_identita', 'telefono', 'email', 'password' ];
             validateRequired($data, $requiredFields);
             
             validateEmail($data['email']);
@@ -92,19 +79,17 @@ class Passeggero {
             $hashedPassword = password_hash($data['password'], PASSWORD_ARGON2ID);
             
             $query = "INSERT INTO " . $this->table . " 
-                      (nome, cognome, email, password, telefono, data_nascita, citta, bio)
-                      VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                      (nome, cognome, documento_identita, telefono, email, password)
+                      VALUES (?, ?, ?, ?, ?, ?)";
                       
             $stmt = $this->conn->prepare($query);
             $stmt->execute([
                 $data['nome'],
                 $data['cognome'],
-                $data['email'],
-                $hashedPassword,
+                $data['documento_identita'],
                 $data['telefono'],
-                $data['data_nascita'],
-                $data['citta'],
-                $data['bio'] ?? null
+                $data['email'],
+                $hashedPassword
             ]);
             
             return $this->conn->lastInsertId();
@@ -141,14 +126,9 @@ class Passeggero {
                 $params[] = $data['telefono'];
             }
             
-            if (isset($data['citta'])) {
-                $fields[] = "citta = ?";
-                $params[] = $data['citta'];
-            }
-            
-            if (isset($data['bio'])) {
-                $fields[] = "bio = ?";
-                $params[] = $data['bio'];
+            if (isset($data['documento_identita'])) {
+                $fields[] = "documento_identita = ?";
+                $params[] = $data['documento_identita'];
             }
             
             if (isset($data['password'])) {

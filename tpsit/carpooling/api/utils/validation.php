@@ -1,4 +1,6 @@
 <?php
+include_once __DIR__ . '/response.php';
+
 /**
  * Validate required fields in the data
  */
