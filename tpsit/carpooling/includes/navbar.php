@@ -14,14 +14,29 @@
                 <li class="nav-item">
                     <a class="nav-link" href="<?php echo $rootPath; ?>index.php">Home</a>
                 </li>
+                
+                <?php if(!isset($_SESSION['user_id'])): ?>
+                    <!-- Show both options for non-logged in users -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo $rootPath; ?>pages/passeggero/search.php">Find a Ride</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo $rootPath; ?>register.php">Offer a Ride</a>
+                    </li>
+                <?php elseif($_SESSION['user_type'] === 'passeggero'): ?>
+                    <!-- Passenger-specific navigation -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo $rootPath; ?>pages/passeggero/search.php">Find a Ride</a>
+                    </li>
+                <?php elseif($_SESSION['user_type'] === 'autista'): ?>
+                    <!-- Driver-specific navigation -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo $rootPath; ?>pages/autista/trips.php">Offer a Ride</a>
+                    </li>
+                <?php endif; ?>
+                
                 <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootPath; ?>pages/passeggero/search.php">Find a Ride</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="<?php echo $rootPath; ?>pages/autista/trips.php">Offer a Ride</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#how-it-works">How it Works</a>
+                    <a class="nav-link" href="<?php echo $rootPath; ?>index.php#how-it-works">How it Works</a>
                 </li>
             </ul>
             <div class="d-flex align-items-center">
@@ -35,9 +50,12 @@
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             <?php if(isset($_SESSION['user_type']) && $_SESSION['user_type'] == 'autista'): ?>
                                 <li><a class="dropdown-item" href="<?php echo $rootPath; ?>pages/autista/profile.php">My Profile</a></li>
+                                <li><a class="dropdown-item" href="<?php echo $rootPath; ?>pages/autista/dashboard.php">Dashboard</a></li>
                                 <li><a class="dropdown-item" href="<?php echo $rootPath; ?>pages/autista/trips.php">My Trips</a></li>
+                                <li><a class="dropdown-item" href="<?php echo $rootPath; ?>pages/autista/vehicles.php">My Vehicles</a></li>
                             <?php elseif(isset($_SESSION['user_type']) && $_SESSION['user_type'] == 'passeggero'): ?>
                                 <li><a class="dropdown-item" href="<?php echo $rootPath; ?>pages/passeggero/profile.php">My Profile</a></li>
+                                <li><a class="dropdown-item" href="<?php echo $rootPath; ?>pages/passeggero/dashboard.php">Dashboard</a></li>
                                 <li><a class="dropdown-item" href="<?php echo $rootPath; ?>pages/passeggero/bookings.php">My Bookings</a></li>
                             <?php endif; ?>
                             <li><hr class="dropdown-divider"></li>

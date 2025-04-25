@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db = new Database();
             $conn = $db->getConnection();
             
-            // OPTION 1: Use the Autista model
+            // Use the Autista model
             require_once $rootPath . '/api/models/Autista.php';
             $autistaModel = new Autista($conn);
             

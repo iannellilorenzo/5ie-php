@@ -10,23 +10,17 @@ class Automobile {
     public function getAll($filters = []) {
         try {
             $query = "SELECT 
-                        a.id, a.autista_id, a.marca, a.modello, a.anno, 
-                        a.targa, a.colore, a.n_posti, 
+                        a.targa, a.marca, a.modello, a.id_autista, 
                         at.nome as nome_autista, at.cognome as cognome_autista
                     FROM " . $this->table . " a
-                    JOIN autisti at ON a.autista_id = at.id";
+                    JOIN autisti at ON a.id_autista = at.id_autista";
             
             $whereConditions = [];
             $params = [];
             
-            if (isset($filters['autista_id'])) {
-                $whereConditions[] = "a.autista_id = ?";
-                $params[] = $filters['autista_id'];
-            }
-            
-            if (isset($filters['n_posti'])) {
-                $whereConditions[] = "a.n_posti >= ?";
-                $params[] = $filters['n_posti'];
+            if (isset($filters['id_autista'])) {
+                $whereConditions[] = "a.id_autista = ?";
+                $params[] = $filters['id_autista'];
             }
             
             if (!empty($whereConditions)) {
@@ -42,18 +36,17 @@ class Automobile {
         }
     }
     
-    public function getById($id) {
+    public function getById($targa) {
         try {
             $query = "SELECT 
-                        a.id, a.autista_id, a.marca, a.modello, a.anno, 
-                        a.targa, a.colore, a.n_posti, a.data_registrazione,
+                        a.targa, a.marca, a.modello, a.id_autista,
                         at.nome as nome_autista, at.cognome as cognome_autista
                     FROM " . $this->table . " a
-                    JOIN autisti at ON a.autista_id = at.id
-                    WHERE a.id = ?";
+                    JOIN autisti at ON a.id_autista = at.id_autista
+                    WHERE a.targa = ?";
                     
             $stmt = $this->conn->prepare($query);
-            $stmt->execute([$id]);
+            $stmt->execute([$targa]);
             
             return $stmt->fetch();
         } catch (PDOException $e) {
@@ -63,19 +56,23 @@ class Automobile {
     
     public function create($data) {
         try {
-            $requiredFields = ['autista_id', 'marca', 'modello', 'anno', 'targa', 'n_posti'];
+            if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
+                $data['id_autista'] = $_SESSION['user_id'];
+            }
+
+            $requiredFields = ['id_autista', 'marca', 'modello', 'targa'];
             validateRequired($data, $requiredFields);
             
             // Check if driver exists
-            $checkDriverQuery = "SELECT COUNT(*) FROM autisti WHERE id = ?";
+            $checkDriverQuery = "SELECT COUNT(*) FROM autisti WHERE id_autista = ?";
             $checkDriverStmt = $this->conn->prepare($checkDriverQuery);
-            $checkDriverStmt->execute([$data['autista_id']]);
+            $checkDriverStmt->execute([$data['id_autista']]);
             
             if ($checkDriverStmt->fetchColumn() == 0) {
                 throw new Exception("Driver not found");
             }
             
-            // Check if license plate is unique
+            // Check if license plate is unique - since it's the primary key
             $checkPlateQuery = "SELECT COUNT(*) FROM " . $this->table . " WHERE targa = ?";
             $checkPlateStmt = $this->conn->prepare($checkPlateQuery);
             $checkPlateStmt->execute([$data['targa']]);
@@ -85,31 +82,28 @@ class Automobile {
             }
             
             $query = "INSERT INTO " . $this->table . " 
-                      (autista_id, marca, modello, anno, targa, colore, n_posti)
-                      VALUES (?, ?, ?, ?, ?, ?, ?)";
+                      (targa, marca, modello, id_autista)
+                      VALUES (?, ?, ?, ?)";
                       
             $stmt = $this->conn->prepare($query);
             $stmt->execute([
-                $data['autista_id'],
+                $data['targa'],
                 $data['marca'],
                 $data['modello'],
-                $data['anno'],
-                $data['targa'],
-                $data['colore'] ?? null,
-                $data['n_posti']
+                $data['id_autista']
             ]);
             
-            return $this->conn->lastInsertId();
+            return $data['targa']; // Return the license plate as ID
         } catch (PDOException $e) {
             throw new Exception($e->getMessage());
         }
     }
     
-    public function update($id, $data) {
+    public function update($targa, $data) {
         try {
-            $checkQuery = "SELECT autista_id FROM " . $this->table . " WHERE id = ?";
+            $checkQuery = "SELECT id_autista FROM " . $this->table . " WHERE targa = ?";
             $checkStmt = $this->conn->prepare($checkQuery);
-            $checkStmt->execute([$id]);
+            $checkStmt->execute([$targa]);
             
             $car = $checkStmt->fetch();
             if (!$car) {
@@ -119,7 +113,7 @@ class Automobile {
             $fields = [];
             $params = [];
             
-            // Cannot change owner (autista_id) of the car
+            // Cannot change targa (primary key) or id_autista (foreign key)
             
             if (isset($data['marca'])) {
                 $fields[] = "marca = ?";
@@ -131,24 +125,9 @@ class Automobile {
                 $params[] = $data['modello'];
             }
             
-            if (isset($data['anno'])) {
-                $fields[] = "anno = ?";
-                $params[] = $data['anno'];
-            }
+            $params[] = $targa;
             
-            if (isset($data['colore'])) {
-                $fields[] = "colore = ?";
-                $params[] = $data['colore'];
-            }
-            
-            if (isset($data['n_posti'])) {
-                $fields[] = "n_posti = ?";
-                $params[] = $data['n_posti'];
-            }
-            
-            $params[] = $id;
-            
-            $query = "UPDATE " . $this->table . " SET " . implode(", ", $fields) . " WHERE id = ?";
+            $query = "UPDATE " . $this->table . " SET " . implode(", ", $fields) . " WHERE targa = ?";
             $stmt = $this->conn->prepare($query);
             $stmt->execute($params);
             
@@ -158,11 +137,11 @@ class Automobile {
         }
     }
     
-    public function delete($id) {
+    public function delete($targa) {
         try {
-            $checkQuery = "SELECT COUNT(*) FROM " . $this->table . " WHERE id = ?";
+            $checkQuery = "SELECT COUNT(*) FROM " . $this->table . " WHERE targa = ?";
             $checkStmt = $this->conn->prepare($checkQuery);
-            $checkStmt->execute([$id]);
+            $checkStmt->execute([$targa]);
             
             if ($checkStmt->fetchColumn() == 0) {
                 throw new Exception("Car not found");
@@ -170,15 +149,15 @@ class Automobile {
             
             $checkTripsQuery = "SELECT COUNT(*) FROM viaggi WHERE auto_id = ?";
             $checkTripsStmt = $this->conn->prepare($checkTripsQuery);
-            $checkTripsStmt->execute([$id]);
+            $checkTripsStmt->execute([$targa]);
             
             if ($checkTripsStmt->fetchColumn() > 0) {
                 throw new Exception("Cannot delete car with active trips");
             }
             
-            $query = "DELETE FROM " . $this->table . " WHERE id = ?";
+            $query = "DELETE FROM " . $this->table . " WHERE targa = ?";
             $stmt = $this->conn->prepare($query);
-            $stmt->execute([$id]);
+            $stmt->execute([$targa]);
             
             return true;
         } catch (PDOException $e) {

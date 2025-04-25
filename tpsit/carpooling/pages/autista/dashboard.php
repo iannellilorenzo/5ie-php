@@ -91,6 +91,26 @@ try {
     $error = "Error retrieving dashboard data: " . $e->getMessage();
 }
 
+// Set default values for statistics (in case something goes wrong)
+if (!isset($totalEarnings)) $totalEarnings = 0;
+if (!isset($completedTrips)) $completedTrips = 0;
+if (!isset($totalPassengers)) $totalPassengers = 0;
+if (!isset($upcomingTrips)) $upcomingTrips = [];
+if (!isset($pastTrips)) $pastTrips = [];
+if (!isset($recentBookings)) $recentBookings = [];
+if (!isset($vehicles)) $vehicles = [];
+if (!isset($allTrips)) $allTrips = [];
+if (!isset($allBookings)) $allBookings = [];
+
+// Set default driver info if not available
+if (!isset($driver) || !is_array($driver)) {
+    $driver = [
+        'nome' => $_SESSION['user_name'] ?? 'Driver',
+        'cognome' => '',
+        'valutazione' => 0
+    ];
+}
+
 // Include header
 include $rootPath . 'includes/header.php';
 
@@ -121,7 +141,7 @@ include $rootPath . 'includes/navbar.php';
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body">
                     <h6 class="text-muted">Total Earnings</h6>
-                    <h3 class="mb-0">€<?php echo number_format($totalEarnings, 2); ?></h3>
+                    <h3 class="mb-0">€<?php echo number_format($totalEarnings ?? 0, 2); ?></h3>
                     <div class="small text-success mt-2">
                         <i class="bi bi-graph-up"></i> Your driving income
                     </div>
@@ -132,7 +152,7 @@ include $rootPath . 'includes/navbar.php';
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body">
                     <h6 class="text-muted">Completed Trips</h6>
-                    <h3 class="mb-0"><?php echo $completedTrips; ?></h3>
+                    <h3 class="mb-0"><?php echo $completedTrips ?? 0; ?></h3>
                     <div class="small text-primary mt-2">
                         <i class="bi bi-check-circle"></i> Successfully finished rides
                     </div>
@@ -143,7 +163,7 @@ include $rootPath . 'includes/navbar.php';
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body">
                     <h6 class="text-muted">Total Passengers</h6>
-                    <h3 class="mb-0"><?php echo $totalPassengers; ?></h3>
+                    <h3 class="mb-0"><?php echo $totalPassengers ?? 0; ?></h3>
                     <div class="small text-info mt-2">
                         <i class="bi bi-people"></i> People you've helped
                     </div>
@@ -353,16 +373,14 @@ include $rootPath . 'includes/navbar.php';
                             <div class="card h-100">
                                 <div class="card-body">
                                     <h5 class="card-title"><?php echo htmlspecialchars($vehicle['marca'] . ' ' . $vehicle['modello']); ?></h5>
-                                    <div class="text-muted small mb-3">
-                                        <i class="bi bi-tag"></i> <?php echo htmlspecialchars($vehicle['targa']); ?> | 
-                                        <i class="bi bi-palette"></i> <?php echo htmlspecialchars($vehicle['colore']); ?> | 
-                                        <i class="bi bi-calendar"></i> <?php echo htmlspecialchars($vehicle['anno']); ?>
+                                    <div class="text-muted mb-3">
+                                        <i class="bi bi-tag"></i> <?php echo htmlspecialchars($vehicle['targa']); ?>
                                     </div>
-                                    <p class="card-text">
-                                        <i class="bi bi-people"></i> <?php echo $vehicle['n_posti']; ?> seats available
-                                    </p>
-                                    <a href="<?php echo $rootPath; ?>pages/autista/edit-vehicle.php?id=<?php echo $vehicle['id']; ?>" class="btn btn-sm btn-outline-primary">
+                                    <a href="<?php echo $rootPath; ?>pages/autista/edit-vehicle.php?id=<?php echo urlencode($vehicle['targa']); ?>" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-pencil"></i> Edit
+                                    </a>
+                                    <a href="<?php echo $rootPath; ?>pages/autista/create-trip.php?vehicle=<?php echo urlencode($vehicle['targa']); ?>" class="btn btn-sm btn-outline-success ms-1">
+                                        <i class="bi bi-plus-circle"></i> Create Trip
                                     </a>
                                 </div>
                             </div>
