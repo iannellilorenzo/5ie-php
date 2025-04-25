@@ -10,61 +10,61 @@ class Viaggio {
     public function getAll($filters = []) {
         try {
             $query = "SELECT 
-                        v.id, v.autista_id, v.auto_id, v.partenza, v.destinazione, 
-                        v.data_partenza, v.ora_partenza, v.durata_stimata, v.prezzo, 
-                        v.posti_disponibili, v.note, v.stato,
-                        a.nome as nome_autista, a.cognome as cognome_autista, a.valutazione as valutazione_autista,
-                        au.marca, au.modello, au.colore
+                        v.id_viaggio, v.citta_partenza, v.citta_destinazione, v.timestamp_partenza, 
+                        v.prezzo_cadauno, v.tempo_stimato, v.soste, v.bagaglio, v.animali,
+                        v.id_autista, a.nome as nome_autista, a.cognome as cognome_autista
                     FROM " . $this->table . " v
-                    JOIN autisti a ON v.autista_id = a.id
-                    LEFT JOIN automobili au ON v.auto_id = au.id";
+                    JOIN autisti a ON v.id_autista = a.id_autista";
             
             $whereConditions = [];
             $params = [];
             
-            if (isset($filters['partenza'])) {
-                $whereConditions[] = "v.partenza LIKE ?";
-                $params[] = "%" . $filters['partenza'] . "%";
+            if (isset($filters['citta_partenza'])) {
+                $whereConditions[] = "v.citta_partenza LIKE ?";
+                $params[] = "%" . $filters['citta_partenza'] . "%";
             }
             
-            if (isset($filters['destinazione'])) {
-                $whereConditions[] = "v.destinazione LIKE ?";
-                $params[] = "%" . $filters['destinazione'] . "%";
+            if (isset($filters['citta_destinazione'])) {
+                $whereConditions[] = "v.citta_destinazione LIKE ?";
+                $params[] = "%" . $filters['citta_destinazione'] . "%";
             }
             
-            if (isset($filters['data_partenza'])) {
-                $whereConditions[] = "v.data_partenza = ?";
-                $params[] = $filters['data_partenza'];
+            if (isset($filters['data'])) {
+                $whereConditions[] = "DATE(v.timestamp_partenza) = ?";
+                $params[] = $filters['data'];
             }
             
-            if (isset($filters['autista_id'])) {
-                $whereConditions[] = "v.autista_id = ?";
-                $params[] = $filters['autista_id'];
+            if (isset($filters['id_autista'])) {
+                $whereConditions[] = "v.id_autista = ?";
+                $params[] = $filters['id_autista'];
             }
             
-            if (isset($filters['posti'])) {
-                $whereConditions[] = "v.posti_disponibili >= ?";
-                $params[] = $filters['posti'];
-            }
-            
+            // Add other filters as needed
             if (isset($filters['prezzo_max'])) {
-                $whereConditions[] = "v.prezzo <= ?";
+                $whereConditions[] = "v.prezzo_cadauno <= ?";
                 $params[] = $filters['prezzo_max'];
             }
             
-            if (isset($filters['stato'])) {
-                $whereConditions[] = "v.stato = ?";
-                $params[] = $filters['stato'];
-            } else {
-                // By default, only show active trips
-                $whereConditions[] = "v.stato = 'attivo'";
+            if (isset($filters['soste'])) {
+                $whereConditions[] = "v.soste = ?";
+                $params[] = $filters['soste'] ? 1 : 0;
+            }
+            
+            if (isset($filters['bagaglio'])) {
+                $whereConditions[] = "v.bagaglio = ?";
+                $params[] = $filters['bagaglio'] ? 1 : 0;
+            }
+            
+            if (isset($filters['animali'])) {
+                $whereConditions[] = "v.animali = ?";
+                $params[] = $filters['animali'] ? 1 : 0;
             }
             
             if (!empty($whereConditions)) {
                 $query .= " WHERE " . implode(" AND ", $whereConditions);
             }
             
-            $query .= " ORDER BY v.data_partenza, v.ora_partenza";
+            $query .= " ORDER BY v.timestamp_partenza";
             
             $stmt = $this->conn->prepare($query);
             $stmt->execute($params);
@@ -78,16 +78,13 @@ class Viaggio {
     public function getById($id) {
         try {
             $query = "SELECT 
-                        v.id, v.autista_id, v.auto_id, v.partenza, v.destinazione, 
-                        v.data_partenza, v.ora_partenza, v.durata_stimata, v.prezzo, 
-                        v.posti_disponibili, v.note, v.stato,
-                        a.nome as nome_autista, a.cognome as cognome_autista, a.valutazione as valutazione_autista,
-                        a.foto_profilo as foto_autista, a.telefono as telefono_autista,
-                        au.marca, au.modello, au.colore, au.n_posti
+                        v.id_viaggio, v.citta_partenza, v.citta_destinazione, v.timestamp_partenza, 
+                        v.prezzo_cadauno, v.tempo_stimato, v.soste, v.bagaglio, v.animali, 
+                        v.id_autista, a.nome as nome_autista, a.cognome as cognome_autista,
+                        a.numero_telefono as telefono_autista, a.fotografia as foto_autista
                     FROM " . $this->table . " v
-                    JOIN autisti a ON v.autista_id = a.id
-                    LEFT JOIN automobili au ON v.auto_id = au.id
-                    WHERE v.id = ?";
+                    JOIN autisti a ON v.id_autista = a.id_autista
+                    WHERE v.id_viaggio = ?";
                     
             $stmt = $this->conn->prepare($query);
             $stmt->execute([$id]);
@@ -100,11 +97,12 @@ class Viaggio {
             
             // Get trip bookings
             $bookingsQuery = "SELECT 
-                                p.id, p.passeggero_id, p.stato, p.n_posti, p.data_prenotazione,
-                                pa.nome, pa.cognome, pa.foto_profilo
+                                p.id_prenotazione, p.id_passeggero, p.stato, p.numero_posti, 
+                                p.timestamp_prenotazione,
+                                pa.nome, pa.cognome
                               FROM prenotazioni p
-                              JOIN passeggeri pa ON p.passeggero_id = pa.id
-                              WHERE p.viaggio_id = ?";
+                              JOIN passeggeri pa ON p.id_passeggero = pa.id_passeggero
+                              WHERE p.id_viaggio = ?";
             $bookingsStmt = $this->conn->prepare($bookingsQuery);
             $bookingsStmt->execute([$id]);
             $bookings = $bookingsStmt->fetchAll();
@@ -120,13 +118,14 @@ class Viaggio {
     public function getByDriverId($driverId) {
         try {
             $query = "SELECT 
-                        v.id, v.partenza, v.destinazione, v.data_partenza, 
-                        v.ora_partenza, v.prezzo, v.posti_disponibili, 
-                        v.stato, au.marca, au.modello
+                        v.id_viaggio, v.citta_partenza, v.citta_destinazione, v.timestamp_partenza, 
+                        v.prezzo_cadauno, v.tempo_stimato, v.soste, v.bagaglio, v.animali,
+                        v.stato, v.id_autista,
+                        a.marca, a.modello
                     FROM " . $this->table . " v
-                    LEFT JOIN automobili au ON v.auto_id = au.id
-                    WHERE v.autista_id = ?
-                    ORDER BY v.data_partenza DESC";
+                    LEFT JOIN automobili a ON a.id_autista = v.id_autista
+                    WHERE v.id_autista = ?
+                    ORDER BY v.timestamp_partenza DESC";
                     
             $stmt = $this->conn->prepare($query);
             $stmt->execute([$driverId]);
@@ -139,56 +138,37 @@ class Viaggio {
     
     public function create($data) {
         try {
-            $requiredFields = ['autista_id', 'auto_id', 'partenza', 'destinazione', 
-                              'data_partenza', 'ora_partenza', 'prezzo', 'posti_disponibili'];
+            include_once __DIR__ . '/../utils/validation.php';
+            
+            $requiredFields = ['id_autista', 'citta_partenza', 'citta_destinazione', 'timestamp_partenza', 
+                              'prezzo_cadauno'];
             validateRequired($data, $requiredFields);
             
             // Check if driver exists
-            $checkDriverQuery = "SELECT COUNT(*) FROM autisti WHERE id = ?";
+            $checkDriverQuery = "SELECT COUNT(*) FROM autisti WHERE id_autista = ?";
             $checkDriverStmt = $this->conn->prepare($checkDriverQuery);
-            $checkDriverStmt->execute([$data['autista_id']]);
+            $checkDriverStmt->execute([$data['id_autista']]);
             
             if ($checkDriverStmt->fetchColumn() == 0) {
                 throw new Exception("Driver not found");
             }
             
-            // Check if car exists and belongs to the driver
-            $checkCarQuery = "SELECT autista_id, n_posti FROM automobili WHERE id = ?";
-            $checkCarStmt = $this->conn->prepare($checkCarQuery);
-            $checkCarStmt->execute([$data['auto_id']]);
-            
-            $car = $checkCarStmt->fetch();
-            if (!$car) {
-                throw new Exception("Car not found");
-            }
-            
-            if ($car['autista_id'] != $data['autista_id']) {
-                throw new Exception("This car doesn't belong to the specified driver");
-            }
-            
-            // Check if seats are valid
-            if ($data['posti_disponibili'] > $car['n_posti']) {
-                throw new Exception("Cannot offer more seats than the car has");
-            }
-            
             $query = "INSERT INTO " . $this->table . " 
-                      (autista_id, auto_id, partenza, destinazione, data_partenza, 
-                       ora_partenza, durata_stimata, prezzo, posti_disponibili, note, stato)
-                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                      (id_autista, citta_partenza, citta_destinazione, timestamp_partenza, 
+                       prezzo_cadauno, tempo_stimato, soste, bagaglio, animali)
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
                       
             $stmt = $this->conn->prepare($query);
             $stmt->execute([
-                $data['autista_id'],
-                $data['auto_id'],
-                $data['partenza'],
-                $data['destinazione'],
-                $data['data_partenza'],
-                $data['ora_partenza'],
-                $data['durata_stimata'] ?? null,
-                $data['prezzo'],
-                $data['posti_disponibili'],
-                $data['note'] ?? null,
-                'attivo' // Default status
+                $data['id_autista'],
+                $data['citta_partenza'],
+                $data['citta_destinazione'],
+                $data['timestamp_partenza'],
+                $data['prezzo_cadauno'],
+                $data['tempo_stimato'] ?? NULL,
+                $data['soste'] ?? FALSE,
+                $data['bagaglio'] ?? FALSE,
+                $data['animali'] ?? FALSE
             ]);
             
             return $this->conn->lastInsertId();
@@ -199,7 +179,7 @@ class Viaggio {
     
     public function update($id, $data) {
         try {
-            $checkQuery = "SELECT autista_id, stato FROM " . $this->table . " WHERE id = ?";
+            $checkQuery = "SELECT id_autista FROM " . $this->table . " WHERE id_viaggio = ?";
             $checkStmt = $this->conn->prepare($checkQuery);
             $checkStmt->execute([$id]);
             
@@ -208,93 +188,58 @@ class Viaggio {
                 throw new Exception("Trip not found");
             }
             
-            // Only allow updates if trip is active
-            if ($trip['stato'] != 'attivo' && !isset($data['stato'])) {
-                throw new Exception("Cannot update a trip that's not active");
-            }
-            
             $fields = [];
             $params = [];
             
-            // Can't change autista_id
+            // Can't change id_autista
             
-            if (isset($data['auto_id'])) {
-                // Check if car exists and belongs to the driver
-                $checkCarQuery = "SELECT autista_id FROM automobili WHERE id = ?";
-                $checkCarStmt = $this->conn->prepare($checkCarQuery);
-                $checkCarStmt->execute([$data['auto_id']]);
-                
-                $car = $checkCarStmt->fetch();
-                if (!$car) {
-                    throw new Exception("Car not found");
-                }
-                
-                if ($car['autista_id'] != $trip['autista_id']) {
-                    throw new Exception("This car doesn't belong to the trip's driver");
-                }
-                
-                $fields[] = "auto_id = ?";
-                $params[] = $data['auto_id'];
+            if (isset($data['citta_partenza'])) {
+                $fields[] = "citta_partenza = ?";
+                $params[] = $data['citta_partenza'];
             }
             
-            if (isset($data['partenza'])) {
-                $fields[] = "partenza = ?";
-                $params[] = $data['partenza'];
+            if (isset($data['citta_destinazione'])) {
+                $fields[] = "citta_destinazione = ?";
+                $params[] = $data['citta_destinazione'];
             }
             
-            if (isset($data['destinazione'])) {
-                $fields[] = "destinazione = ?";
-                $params[] = $data['destinazione'];
+            if (isset($data['timestamp_partenza'])) {
+                $fields[] = "timestamp_partenza = ?";
+                $params[] = $data['timestamp_partenza'];
             }
             
-            if (isset($data['data_partenza'])) {
-                $fields[] = "data_partenza = ?";
-                $params[] = $data['data_partenza'];
+            if (isset($data['prezzo_cadauno'])) {
+                $fields[] = "prezzo_cadauno = ?";
+                $params[] = $data['prezzo_cadauno'];
             }
             
-            if (isset($data['ora_partenza'])) {
-                $fields[] = "ora_partenza = ?";
-                $params[] = $data['ora_partenza'];
+            if (isset($data['tempo_stimato'])) {
+                $fields[] = "tempo_stimato = ?";
+                $params[] = $data['tempo_stimato'];
             }
             
-            if (isset($data['durata_stimata'])) {
-                $fields[] = "durata_stimata = ?";
-                $params[] = $data['durata_stimata'];
+            if (isset($data['soste'])) {
+                $fields[] = "soste = ?";
+                $params[] = $data['soste'] ? 1 : 0;
             }
             
-            if (isset($data['prezzo'])) {
-                $fields[] = "prezzo = ?";
-                $params[] = $data['prezzo'];
+            if (isset($data['bagaglio'])) {
+                $fields[] = "bagaglio = ?";
+                $params[] = $data['bagaglio'] ? 1 : 0;
             }
             
-            if (isset($data['posti_disponibili'])) {
-                // Check if seats are valid
-                $checkBookingsQuery = "SELECT COUNT(*) as num_bookings FROM prenotazioni WHERE viaggio_id = ? AND stato != 'annullata'";
-                $checkBookingsStmt = $this->conn->prepare($checkBookingsQuery);
-                $checkBookingsStmt->execute([$id]);
-                $bookings = $checkBookingsStmt->fetch();
-                
-                if ($data['posti_disponibili'] < $bookings['num_bookings']) {
-                    throw new Exception("Cannot reduce seats below number of current bookings");
-                }
-                
-                $fields[] = "posti_disponibili = ?";
-                $params[] = $data['posti_disponibili'];
+            if (isset($data['animali'])) {
+                $fields[] = "animali = ?";
+                $params[] = $data['animali'] ? 1 : 0;
             }
             
-            if (isset($data['note'])) {
-                $fields[] = "note = ?";
-                $params[] = $data['note'];
-            }
-            
-            if (isset($data['stato'])) {
-                $fields[] = "stato = ?";
-                $params[] = $data['stato'];
+            if (empty($fields)) {
+                return true; // Nothing to update
             }
             
             $params[] = $id;
             
-            $query = "UPDATE " . $this->table . " SET " . implode(", ", $fields) . " WHERE id = ?";
+            $query = "UPDATE " . $this->table . " SET " . implode(", ", $fields) . " WHERE id_viaggio = ?";
             $stmt = $this->conn->prepare($query);
             $stmt->execute($params);
             
@@ -306,29 +251,21 @@ class Viaggio {
     
     public function delete($id) {
         try {
-            $checkQuery = "SELECT stato FROM " . $this->table . " WHERE id = ?";
+            $checkQuery = "SELECT id_viaggio FROM " . $this->table . " WHERE id_viaggio = ?";
             $checkStmt = $this->conn->prepare($checkQuery);
             $checkStmt->execute([$id]);
             
-            $trip = $checkStmt->fetch();
-            if (!$trip) {
+            if ($checkStmt->rowCount() == 0) {
                 throw new Exception("Trip not found");
             }
             
-            $checkBookingsQuery = "SELECT COUNT(*) FROM prenotazioni WHERE viaggio_id = ? AND stato = 'confermata'";
-            $checkBookingsStmt = $this->conn->prepare($checkBookingsQuery);
-            $checkBookingsStmt->execute([$id]);
+            // DELETE all associated bookings first (not needed with ON DELETE CASCADE, but kept for clarity)
+            // $deleteBookingsQuery = "DELETE FROM prenotazioni WHERE id_viaggio = ?";
+            // $deleteBookingsStmt = $this->conn->prepare($deleteBookingsQuery);
+            // $deleteBookingsStmt->execute([$id]);
             
-            if ($checkBookingsStmt->fetchColumn() > 0) {
-                throw new Exception("Cannot delete trip with confirmed bookings");
-            }
-            
-            // First, set all pending bookings to canceled
-            $cancelBookingsQuery = "UPDATE prenotazioni SET stato = 'annullata' WHERE viaggio_id = ? AND stato = 'in_attesa'";
-            $cancelBookingsStmt = $this->conn->prepare($cancelBookingsQuery);
-            $cancelBookingsStmt->execute([$id]);
-            
-            $query = "DELETE FROM " . $this->table . " WHERE id = ?";
+            // Then delete the trip
+            $query = "DELETE FROM " . $this->table . " WHERE id_viaggio = ?";
             $stmt = $this->conn->prepare($query);
             $stmt->execute([$id]);
             

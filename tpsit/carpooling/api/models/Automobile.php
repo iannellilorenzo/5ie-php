@@ -139,22 +139,15 @@ class Automobile {
     
     public function delete($targa) {
         try {
-            $checkQuery = "SELECT COUNT(*) FROM " . $this->table . " WHERE targa = ?";
+            $checkQuery = "SELECT targa FROM " . $this->table . " WHERE targa = ?";
             $checkStmt = $this->conn->prepare($checkQuery);
             $checkStmt->execute([$targa]);
             
-            if ($checkStmt->fetchColumn() == 0) {
-                throw new Exception("Car not found");
+            if ($checkStmt->rowCount() == 0) {
+                throw new Exception("Vehicle not found");
             }
             
-            $checkTripsQuery = "SELECT COUNT(*) FROM viaggi WHERE auto_id = ?";
-            $checkTripsStmt = $this->conn->prepare($checkTripsQuery);
-            $checkTripsStmt->execute([$targa]);
-            
-            if ($checkTripsStmt->fetchColumn() > 0) {
-                throw new Exception("Cannot delete car with active trips");
-            }
-            
+            // No need to check for related trips - CASCADE will handle it
             $query = "DELETE FROM " . $this->table . " WHERE targa = ?";
             $stmt = $this->conn->prepare($query);
             $stmt->execute([$targa]);

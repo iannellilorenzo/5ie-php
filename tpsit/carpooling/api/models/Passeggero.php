@@ -150,23 +150,16 @@ class Passeggero {
     
     public function delete($id) {
         try {
-            $checkQuery = "SELECT COUNT(*) FROM " . $this->table . " WHERE id = ?";
+            $checkQuery = "SELECT id_passeggero FROM " . $this->table . " WHERE id_passeggero = ?";
             $checkStmt = $this->conn->prepare($checkQuery);
             $checkStmt->execute([$id]);
             
-            if ($checkStmt->fetchColumn() == 0) {
+            if ($checkStmt->rowCount() == 0) {
                 throw new Exception("Passenger not found");
             }
             
-            $checkBookingsQuery = "SELECT COUNT(*) FROM prenotazioni WHERE passeggero_id = ?";
-            $checkBookingsStmt = $this->conn->prepare($checkBookingsQuery);
-            $checkBookingsStmt->execute([$id]);
-            
-            if ($checkBookingsStmt->fetchColumn() > 0) {
-                throw new Exception("Cannot delete passenger with active bookings");
-            }
-            
-            $query = "DELETE FROM " . $this->table . " WHERE id = ?";
+            // No need to check for related bookings - CASCADE will handle it
+            $query = "DELETE FROM " . $this->table . " WHERE id_passeggero = ?";
             $stmt = $this->conn->prepare($query);
             $stmt->execute([$id]);
             

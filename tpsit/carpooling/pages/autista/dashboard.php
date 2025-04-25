@@ -57,11 +57,16 @@ try {
     $currentDate = date('Y-m-d');
     
     foreach ($allTrips as $trip) {
-        if ($trip['data_partenza'] >= $currentDate) {
+        // Extract just the date portion from timestamp_partenza for comparison
+        $tripDate = date('Y-m-d', strtotime($trip['timestamp_partenza']));
+        if ($tripDate >= $currentDate) {
             $upcomingTrips[] = $trip;
         } else {
             $pastTrips[] = $trip;
-            if ($trip['stato'] === 'completato') {
+            if (isset($trip['stato']) && $trip['stato'] === 'completato') {
+                $completedTrips++;
+            } else if ($tripDate < $currentDate) {
+                // If past trip without explicit status, consider it completed
                 $completedTrips++;
                 // Calculate earnings
                 foreach ($allBookings as $booking) {
@@ -268,7 +273,7 @@ include $rootPath . 'includes/navbar.php';
                             <?php 
                             // Sort upcoming trips by date (closest first)
                             usort($upcomingTrips, function($a, $b) {
-                                return strtotime($a['data_partenza']) - strtotime($b['data_partenza']);
+                                return strtotime($a['timestamp_partenza']) - strtotime($b['timestamp_partenza']);
                             });
                             
                             // Show first 5
@@ -276,24 +281,43 @@ include $rootPath . 'includes/navbar.php';
                             foreach ($displayTrips as $trip): 
                                 // Count bookings
                                 $tripBookings = array_filter($allBookings, function($booking) use ($trip) {
-                                    return $booking['viaggio_id'] == $trip['id'] && $booking['stato'] === 'confermata';
+                                    return $booking['id_viaggio'] == $trip['id_viaggio'] && $booking['stato'] === 'confermata';
                                 });
                                 $bookedSeats = array_sum(array_column($tripBookings, 'n_posti'));
                             ?>
                                 <tr>
-                                    <td><?php echo date('M d, Y', strtotime($trip['data_partenza'])); ?></td>
+                                    <td><?php echo date('M d, Y', strtotime($trip['timestamp_partenza'])); ?></td>
                                     <td>
-                                        <?php echo htmlspecialchars($trip['partenza']); ?> → 
-                                        <?php echo htmlspecialchars($trip['destinazione']); ?>
+                                        <?php echo htmlspecialchars($trip['citta_partenza']); ?> → 
+                                        <?php echo htmlspecialchars($trip['citta_destinazione']); ?>
                                     </td>
-                                    <td><?php echo htmlspecialchars($trip['ora_partenza']); ?></td>
-                                    <td><?php echo ($trip['posti_disponibili'] - $bookedSeats) . '/' . $trip['posti_disponibili']; ?></td>
+                                    <td><?php echo date('H:i', strtotime($trip['timestamp_partenza'])); ?></td>
+                                    <td>
+                                        <?php 
+                                        // Calculate seats - if you don't have a seats field, you'll need to determine how to do this
+                                        $totalSeats = $trip['posti_totali'] ?? 4; // Default to 4 if not set
+                                        echo ($totalSeats - $bookedSeats) . '/' . $totalSeats; 
+                                        ?>
+                                    </td>
                                     <td>€<?php echo number_format($trip['prezzo_cadauno'], 2); ?></td>
                                     <td><?php echo count($tripBookings); ?></td>
                                     <td>
-                                        <a href="<?php echo $rootPath; ?>pages/autista/trip-details.php?id=<?php echo $trip['id']; ?>" class="btn btn-sm btn-outline-primary">
+                                        <button type="button"
+                                               class="btn btn-sm btn-outline-primary" 
+                                               data-bs-toggle="modal" 
+                                               data-bs-target="#viewTripModal"
+                                               data-trip-id="<?php echo $trip['id_viaggio']; ?>"
+                                               data-trip-departure="<?php echo htmlspecialchars($trip['citta_partenza']); ?>"
+                                               data-trip-destination="<?php echo htmlspecialchars($trip['citta_destinazione']); ?>"
+                                               data-trip-date="<?php echo date('Y-m-d', strtotime($trip['timestamp_partenza'])); ?>"
+                                               data-trip-time="<?php echo date('H:i', strtotime($trip['timestamp_partenza'])); ?>"
+                                               data-trip-price="<?php echo $trip['prezzo_cadauno']; ?>"
+                                               data-trip-duration="<?php echo $trip['tempo_stimato'] ?? '00:00'; ?>"
+                                               data-trip-stops="<?php echo $trip['soste'] ? '1' : '0'; ?>"
+                                               data-trip-luggage="<?php echo $trip['bagaglio'] ? '1' : '0'; ?>"
+                                               data-trip-pets="<?php echo $trip['animali'] ? '1' : '0'; ?>">
                                             <i class="bi bi-eye"></i> Details
-                                        </a>
+                                        </button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -320,7 +344,7 @@ include $rootPath . 'includes/navbar.php';
                         // Get trip details
                         $tripDetails = null;
                         foreach ($allTrips as $trip) {
-                            if ($trip['id'] == $booking['viaggio_id']) {
+                            if ($trip['id_viaggio'] == $booking['id_viaggio']) {
                                 $tripDetails = $trip;
                                 break;
                             }
@@ -331,8 +355,8 @@ include $rootPath . 'includes/navbar.php';
                             <div>
                                 <h6 class="mb-1"><?php echo htmlspecialchars($booking['nome_passeggero'] . ' ' . $booking['cognome_passeggero']); ?></h6>
                                 <p class="mb-1 small text-muted">
-                                    <?php echo htmlspecialchars($tripDetails['partenza'] . ' → ' . $tripDetails['destinazione']); ?> | 
-                                    <?php echo date('M d', strtotime($tripDetails['data_partenza'])); ?> | 
+                                    <?php echo htmlspecialchars($tripDetails['citta_partenza'] . ' → ' . $tripDetails['citta_destinazione']); ?> | 
+                                    <?php echo date('M d', strtotime($tripDetails['timestamp_partenza'])); ?> | 
                                     <?php echo $booking['n_posti']; ?> seat(s)
                                 </p>
                                 <small class="text-muted">Requested <?php echo date('M d, H:i', strtotime($booking['data_prenotazione'])); ?></small>
@@ -391,6 +415,191 @@ include $rootPath . 'includes/navbar.php';
         </div>
     </div>
 </div>
+
+<!-- Trip Details Modal -->
+<div class="modal fade" id="viewTripModal" tabindex="-1" aria-labelledby="viewTripModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewTripModalLabel">Trip Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <!-- Trip Information -->
+                    <div class="col-md-6">
+                        <h6 class="fw-bold mb-3">Trip Information</h6>
+                        <div class="mb-3">
+                            <label class="text-muted small">Route</label>
+                            <p class="mb-1" id="viewTripRoute"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="text-muted small">Date & Time</label>
+                            <p class="mb-1" id="viewTripDateTime"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="text-muted small">Price per person</label>
+                            <p class="mb-1" id="viewTripPrice"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="text-muted small">Estimated Time</label>
+                            <p class="mb-1" id="viewTripDuration"></p>
+                        </div>
+                    </div>
+                    
+                    <!-- Features -->
+                    <div class="col-md-6">
+                        <h6 class="fw-bold mb-3">Features</h6>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                Stops allowed
+                                <span id="viewTripStops"></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                Luggage allowed
+                                <span id="viewTripLuggage"></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                Pets allowed
+                                <span id="viewTripPets"></span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <!-- Booking Information -->
+                <h6 class="fw-bold mb-3">Passenger Bookings</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Passenger</th>
+                                <th>Booking Date</th>
+                                <th>Seats</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="viewTripBookings">
+                            <!-- Bookings will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="noBookingsMessage" class="text-center text-muted py-3" style="display: none;">
+                    <p>No bookings for this trip yet</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="" id="editTripBtn" class="btn btn-primary">Edit Trip</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle view trip details modal
+    const viewTripModal = document.getElementById('viewTripModal');
+    if (viewTripModal) {
+        viewTripModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const tripId = button.getAttribute('data-trip-id');
+            const tripDeparture = button.getAttribute('data-trip-departure');
+            const tripDestination = button.getAttribute('data-trip-destination');
+            const tripRoute = tripDeparture + ' → ' + tripDestination;
+            const tripDate = button.getAttribute('data-trip-date');
+            const tripTime = button.getAttribute('data-trip-time');
+            const tripDateTime = tripDate + ' at ' + tripTime;
+            const tripPrice = '€' + button.getAttribute('data-trip-price');
+            
+            // Set trip details
+            document.getElementById('viewTripRoute').textContent = tripRoute;
+            document.getElementById('viewTripDateTime').textContent = tripDateTime;
+            document.getElementById('viewTripPrice').textContent = tripPrice;
+            
+            // Parse duration
+            const duration = button.getAttribute('data-trip-duration');
+            if (duration) {
+                const [hours, minutes] = duration.split(':');
+                const durationText = (hours > 0 ? hours + ' hour' + (hours !== 1 ? 's' : '') : '') + 
+                                   (minutes > 0 ? ' ' + minutes + ' minute' + (minutes !== 1 ? 's' : '') : '');
+                document.getElementById('viewTripDuration').textContent = durationText || 'Not specified';
+            }
+            
+            // Set features
+            document.getElementById('viewTripStops').innerHTML = button.getAttribute('data-trip-stops') === '1' ? 
+                '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>';
+            document.getElementById('viewTripLuggage').innerHTML = button.getAttribute('data-trip-luggage') === '1' ? 
+                '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>';
+            document.getElementById('viewTripPets').innerHTML = button.getAttribute('data-trip-pets') === '1' ? 
+                '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>';
+            
+            // Set edit button link
+            document.getElementById('editTripBtn').href = '<?php echo $rootPath; ?>pages/autista/edit-trip.php?id=' + encodeURIComponent(tripId);
+            
+            // Load bookings via AJAX
+            fetch('<?php echo $rootPath; ?>pages/autista/get-bookings.php?trip_id=' + encodeURIComponent(tripId))
+                .then(response => response.json())
+                .then(data => {
+                    const bookingsTable = document.getElementById('viewTripBookings');
+                    const noBookingsMsg = document.getElementById('noBookingsMessage');
+                    
+                    if (data.length === 0) {
+                        bookingsTable.innerHTML = '';
+                        noBookingsMsg.style.display = 'block';
+                    } else {
+                        noBookingsMsg.style.display = 'none';
+                        let html = '';
+                        
+                        data.forEach(booking => {
+                            const bookingDate = new Date(booking.data_prenotazione || booking.timestamp_prenotazione);
+                            const formattedDate = bookingDate.toLocaleDateString() + ' ' + 
+                                                 bookingDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                            
+                            let statusBadge = '';
+                            if (booking.stato === 'confermata') {
+                                statusBadge = '<span class="badge bg-success">Confirmed</span>';
+                            } else if (booking.stato === 'in attesa') {
+                                statusBadge = '<span class="badge bg-warning text-dark">Pending</span>';
+                            } else {
+                                statusBadge = '<span class="badge bg-secondary">' + booking.stato + '</span>';
+                            }
+                            
+                            const passengerName = booking.nome_passeggero ? 
+                                booking.nome_passeggero + ' ' + booking.cognome_passeggero : 
+                                booking.nome + ' ' + booking.cognome;
+                            
+                            html += `
+                                <tr>
+                                    <td>${passengerName}</td>
+                                    <td>${formattedDate}</td>
+                                    <td>${booking.n_posti}</td>
+                                    <td>${statusBadge}</td>
+                                    <td>
+                                        <a href="<?php echo $rootPath; ?>pages/autista/booking-action.php?id=${booking.id_prenotazione || booking.id}&action=view" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            Details
+                                        </a>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        
+                        bookingsTable.innerHTML = html;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching bookings:', error);
+                    document.getElementById('noBookingsMessage').style.display = 'block';
+                    document.getElementById('noBookingsMessage').innerHTML = '<p class="text-danger">Error loading bookings</p>';
+                });
+        });
+    }
+});
+</script>
 
 <?php
 // Include footer

@@ -212,25 +212,15 @@ class Autista {
      */
     public function delete($id) {
         try {
-            // Check if driver exists using the correct column name id_autista
-            $checkQuery = "SELECT COUNT(*) FROM " . $this->table . " WHERE id_autista = ?";
+            $checkQuery = "SELECT id_autista FROM " . $this->table . " WHERE id_autista = ?";
             $checkStmt = $this->conn->prepare($checkQuery);
             $checkStmt->execute([$id]);
             
-            if ($checkStmt->fetchColumn() == 0) {
+            if ($checkStmt->rowCount() == 0) {
                 throw new Exception("Driver not found");
             }
             
-            // Check for related records in other tables
-            $checkTripsQuery = "SELECT COUNT(*) FROM viaggi WHERE id_autista = ?";
-            $checkTripsStmt = $this->conn->prepare($checkTripsQuery);
-            $checkTripsStmt->execute([$id]);
-            
-            if ($checkTripsStmt->fetchColumn() > 0) {
-                throw new Exception("Cannot delete driver with active trips");
-            }
-            
-            // Delete driver
+            // No need to check for related automobiles, trips, etc. - CASCADE will handle it
             $query = "DELETE FROM " . $this->table . " WHERE id_autista = ?";
             $stmt = $this->conn->prepare($query);
             $stmt->execute([$id]);

@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS viaggi (
     soste BOOLEAN DEFAULT FALSE,
     bagaglio BOOLEAN DEFAULT FALSE,
     animali BOOLEAN DEFAULT FALSE,
+    stato ENUM('attivo', 'annullato', 'completato') DEFAULT 'attivo',
     id_autista INT NOT NULL,
     FOREIGN KEY (id_autista) REFERENCES autisti(id_autista) ON DELETE CASCADE
 );
