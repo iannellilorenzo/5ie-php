@@ -20,24 +20,30 @@ class Prenotazione {
                     JOIN passeggeri pa ON p.id_passeggero = pa.id_passeggero
                     JOIN viaggi v ON p.id_viaggio = v.id_viaggio";
             
-            $whereConditions = [];
+            $conditions = [];
             $params = [];
             
-            if (isset($filters['id_viaggio'])) {
-                $whereConditions[] = "p.id_viaggio = ?";
-                $params[] = $filters['id_viaggio'];
+            if (!empty($filters)) {
+                foreach ($filters as $key => $value) {
+                    // Handle special case for viaggio_ids - array of trip IDs
+                    if ($key === 'viaggio_ids' && is_array($value) && !empty($value)) {
+                        $placeholders = implode(',', array_fill(0, count($value), '?'));
+                        $conditions[] = "p.id_viaggio IN ($placeholders)";
+                        $params = array_merge($params, $value);
+                        continue;
+                    }
+                    
+                    // Skip filters with special handling or non-existent columns
+                    if ($key === 'stato') continue;
+                    
+                    $conditions[] = "p." . $key . " = ?";
+                    $params[] = $value;
+                }
+                
+                if (!empty($conditions)) {
+                    $query .= " WHERE " . implode(" AND ", $conditions);
+                }
             }
-            
-            if (isset($filters['id_passeggero'])) {
-                $whereConditions[] = "p.id_passeggero = ?";
-                $params[] = $filters['id_passeggero'];
-            }
-            
-            if (!empty($whereConditions)) {
-                $query .= " WHERE " . implode(" AND ", $whereConditions);
-            }
-            
-            $query .= " ORDER BY v.timestamp_partenza DESC";
             
             $stmt = $this->conn->prepare($query);
             $stmt->execute($params);
@@ -51,21 +57,20 @@ class Prenotazione {
     public function getById($id) {
         try {
             $query = "SELECT 
-                        p.id_prenotazione, p.id_viaggio, p.id_passeggero,
+                        p.id_prenotazione, p.id_viaggio, p.id_passeggero, 
                         p.voto_autista, p.voto_passeggero,
                         p.feedback_autista, p.feedback_passeggero,
-                        pa.nome as nome_passeggero, pa.cognome as cognome_passeggero, 
-                        pa.email as email_passeggero, pa.telefono as telefono_passeggero,
-                        v.citta_partenza, v.citta_destinazione, v.timestamp_partenza,
-                        v.prezzo_cadauno, v.id_autista,
-                        a.nome as nome_autista, a.cognome as cognome_autista,
-                        a.email as email_autista, a.numero_telefono as telefono_autista,
-                        au.marca, au.modello
-                    FROM " . $this->table . " p
+                        pa.nome as nome_passeggero, pa.cognome as cognome_passeggero,
+                        v.citta_partenza, v.citta_destinazione, v.timestamp_partenza, 
+                        v.prezzo_cadauno, v.tempo_stimato, v.soste, v.bagaglio, v.animali,
+                        v.id_autista, a.nome as nome_autista, a.cognome as cognome_autista,
+                        a.fotografia as foto_autista,
+                        au.targa, au.marca, au.modello
+                    FROM prenotazioni p
                     JOIN passeggeri pa ON p.id_passeggero = pa.id_passeggero
                     JOIN viaggi v ON p.id_viaggio = v.id_viaggio
                     JOIN autisti a ON v.id_autista = a.id_autista
-                    LEFT JOIN automobili au ON au.id_autista = v.id_autista
+                    LEFT JOIN automobili au ON a.id_autista = au.id_autista
                     WHERE p.id_prenotazione = ?";
                     
             $stmt = $this->conn->prepare($query);
@@ -79,51 +84,15 @@ class Prenotazione {
     
     public function create($data) {
         try {
-            $requiredFields = ['id_viaggio', 'id_passeggero'];
-            validateRequired($data, $requiredFields);
-            
-            // Check if passenger exists
-            $checkPassengerQuery = "SELECT COUNT(*) FROM passeggeri WHERE id_passeggero = ?";
-            $checkPassengerStmt = $this->conn->prepare($checkPassengerQuery);
-            $checkPassengerStmt->execute([$data['id_passeggero']]);
-            
-            if ($checkPassengerStmt->fetchColumn() == 0) {
-                throw new Exception("Passenger not found");
+            if (!isset($data['id_viaggio']) || !isset($data['id_passeggero'])) {
+                throw new Exception("Required data missing");
             }
             
-            // Check if trip exists
-            $checkTripQuery = "SELECT id_autista FROM viaggi WHERE id_viaggio = ?";
-            $checkTripStmt = $this->conn->prepare($checkTripQuery);
-            $checkTripStmt->execute([$data['id_viaggio']]);
-            
-            $trip = $checkTripStmt->fetch();
-            if (!$trip) {
-                throw new Exception("Trip not found");
-            }
-            
-            // Check if passenger is not the driver
-            $checkDriverQuery = "SELECT COUNT(*) FROM autisti WHERE id_autista = ? AND id_autista = ?";
-            $checkDriverStmt = $this->conn->prepare($checkDriverQuery);
-            $checkDriverStmt->execute([$data['id_passeggero'], $trip['id_autista']]);
-            
-            if ($checkDriverStmt->fetchColumn() > 0) {
-                throw new Exception("Driver cannot book their own trip");
-            }
-            
-            // Check if passenger already has a booking for this trip
-            $existingBookingQuery = "SELECT COUNT(*) FROM prenotazioni
-                                    WHERE id_viaggio = ? AND id_passeggero = ?";
-            $existingBookingStmt = $this->conn->prepare($existingBookingQuery);
-            $existingBookingStmt->execute([$data['id_viaggio'], $data['id_passeggero']]);
-            
-            if ($existingBookingStmt->fetchColumn() > 0) {
-                throw new Exception("You already have a booking for this trip");
-            }
-            
+            // Simplify to match the actual database schema
             $query = "INSERT INTO " . $this->table . " 
-                      (id_viaggio, id_passeggero)
-                      VALUES (?, ?)";
-                      
+                    (id_viaggio, id_passeggero)
+                    VALUES (?, ?)";
+                    
             $stmt = $this->conn->prepare($query);
             $stmt->execute([
                 $data['id_viaggio'],

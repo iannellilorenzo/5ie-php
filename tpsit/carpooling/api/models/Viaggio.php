@@ -80,7 +80,7 @@ class Viaggio {
             $query = "SELECT 
                         v.id_viaggio, v.citta_partenza, v.citta_destinazione, v.timestamp_partenza, 
                         v.prezzo_cadauno, v.tempo_stimato, v.soste, v.bagaglio, v.animali, 
-                        v.id_autista, a.nome as nome_autista, a.cognome as cognome_autista,
+                        v.stato, v.id_autista, a.nome as nome_autista, a.cognome as cognome_autista,
                         a.numero_telefono as telefono_autista, a.fotografia as foto_autista
                     FROM " . $this->table . " v
                     JOIN autisti a ON v.id_autista = a.id_autista
@@ -91,23 +91,55 @@ class Viaggio {
             
             $trip = $stmt->fetch();
             
+            // Set default value for stato if not present
+            if ($trip && !isset($trip['stato'])) {
+                $trip['stato'] = 'attivo';
+            }
+            
+            return $trip;
+        } catch (PDOException $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    /**
+     * Get bookings for a specific trip
+     * 
+     * @param int $tripId The trip ID
+     * @return array Array of booking records
+     */
+    public function getTripBookings($tripId) {
+        try {
+            $query = "SELECT 
+                        p.id_prenotazione, p.id_passeggero, p.stato, p.numero_posti, 
+                        p.timestamp_prenotazione,
+                        pa.nome, pa.cognome
+                      FROM prenotazioni p
+                      JOIN passeggeri pa ON p.id_passeggero = pa.id_passeggero
+                      WHERE p.id_viaggio = ?";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute([$tripId]);
+            return $stmt->fetchAll();
+        } catch (PDOException $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    /**
+     * Get trip with bookings included
+     * 
+     * @param int $id The trip ID
+     * @return array|null Trip with bookings or null if not found
+     */
+    public function getTripWithBookings($id) {
+        try {
+            $trip = $this->getById($id);
+            
             if (!$trip) {
                 return null;
             }
             
-            // Get trip bookings
-            $bookingsQuery = "SELECT 
-                                p.id_prenotazione, p.id_passeggero, p.stato, p.numero_posti, 
-                                p.timestamp_prenotazione,
-                                pa.nome, pa.cognome
-                              FROM prenotazioni p
-                              JOIN passeggeri pa ON p.id_passeggero = pa.id_passeggero
-                              WHERE p.id_viaggio = ?";
-            $bookingsStmt = $this->conn->prepare($bookingsQuery);
-            $bookingsStmt->execute([$id]);
-            $bookings = $bookingsStmt->fetchAll();
-            
-            $trip['prenotazioni'] = $bookings;
+            $trip['prenotazioni'] = $this->getTripBookings($id);
             
             return $trip;
         } catch (PDOException $e) {
@@ -233,6 +265,11 @@ class Viaggio {
                 $params[] = $data['animali'] ? 1 : 0;
             }
             
+            if (isset($data['stato'])) {
+                $fields[] = "stato = ?";
+                $params[] = $data['stato'];
+            }
+            
             if (empty($fields)) {
                 return true; // Nothing to update
             }
@@ -270,6 +307,100 @@ class Viaggio {
             $stmt->execute([$id]);
             
             return true;
+        } catch (PDOException $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    /**
+     * Search for trips based on criteria
+     * 
+     * @param array $filters Associative array of search filters
+     * @return array Found trips
+     */
+    public function search($filters = []) {
+        try {
+            $conditions = [];
+            $params = [];
+            
+            $query = "SELECT 
+                        v.id_viaggio, v.citta_partenza, v.citta_destinazione, v.timestamp_partenza, 
+                        v.prezzo_cadauno, v.tempo_stimato, v.soste, v.bagaglio, v.animali, v.stato,
+                        v.id_autista, a.marca, a.modello 
+                    FROM " . $this->table . " v 
+                    LEFT JOIN automobili a ON a.id_autista = v.id_autista
+                    WHERE v.stato = 'attivo'";
+            
+            // Apply filters
+            if (isset($filters['citta_partenza']) && !empty($filters['citta_partenza'])) {
+                $conditions[] = "v.citta_partenza LIKE ?";
+                $params[] = '%' . $filters['citta_partenza'] . '%';
+            }
+            
+            if (isset($filters['citta_destinazione']) && !empty($filters['citta_destinazione'])) {
+                $conditions[] = "v.citta_destinazione LIKE ?";
+                $params[] = '%' . $filters['citta_destinazione'] . '%';
+            }
+            
+            if (isset($filters['data_partenza']) && !empty($filters['data_partenza'])) {
+                $conditions[] = "DATE(v.timestamp_partenza) = ?";
+                $params[] = $filters['data_partenza'];
+            }
+            
+            if (isset($filters['prezzo_min']) && !empty($filters['prezzo_min'])) {
+                $conditions[] = "v.prezzo_cadauno >= ?";
+                $params[] = $filters['prezzo_min'];
+            }
+            
+            if (isset($filters['prezzo_max']) && !empty($filters['prezzo_max'])) {
+                $conditions[] = "v.prezzo_cadauno <= ?";
+                $params[] = $filters['prezzo_max'];
+            }
+            
+            // Apply time of day filter
+            if (isset($filters['orario_partenza']) && !empty($filters['orario_partenza'])) {
+                switch ($filters['orario_partenza']) {
+                    case 'morning':
+                        $conditions[] = "TIME(v.timestamp_partenza) BETWEEN '06:00:00' AND '12:00:00'";
+                        break;
+                    case 'afternoon':
+                        $conditions[] = "TIME(v.timestamp_partenza) BETWEEN '12:00:00' AND '18:00:00'";
+                        break;
+                    case 'evening':
+                        $conditions[] = "TIME(v.timestamp_partenza) BETWEEN '18:00:00' AND '24:00:00'";
+                        break;
+                }
+            }
+            
+            // Apply feature filters
+            if (isset($filters['soste']) && $filters['soste'] == 1) {
+                $conditions[] = "v.soste = 1";
+            }
+            
+            if (isset($filters['bagaglio']) && $filters['bagaglio'] == 1) {
+                $conditions[] = "v.bagaglio = 1";
+            }
+            
+            if (isset($filters['animali']) && $filters['animali'] == 1) {
+                $conditions[] = "v.animali = 1";
+            }
+            
+            // Only future trips
+            $conditions[] = "v.timestamp_partenza > NOW()";
+            
+            // Add conditions to query
+            if (!empty($conditions)) {
+                $query .= " AND " . implode(" AND ", $conditions);
+            }
+            
+            // Order by departure time
+            $query .= " ORDER BY v.timestamp_partenza ASC";
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute($params);
+            
+            return $stmt->fetchAll();
+            
         } catch (PDOException $e) {
             throw new Exception($e->getMessage());
         }

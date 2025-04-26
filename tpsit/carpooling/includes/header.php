@@ -19,6 +19,21 @@ includes\header.php
             --secondary-color: #f7fafc;
             --accent-color: #11cdef;
         }
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .content-wrapper {
+            flex: 1 0 auto;
+        }
+        footer {
+            flex-shrink: 0;
+        }
         .hero-section {
             background: linear-gradient(135deg, var(--primary-color), #825ee4);
             color: white;

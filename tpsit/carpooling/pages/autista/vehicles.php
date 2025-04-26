@@ -71,6 +71,7 @@ include $rootPath . 'includes/header.php';
 include $rootPath . 'includes/navbar.php';
 ?>
 
+<div class="container-wrapper">
 <!-- Vehicles Management Content -->
 <div class="container py-5">
     <!-- Page Header -->
@@ -169,6 +170,7 @@ include $rootPath . 'includes/navbar.php';
         </a>
     </div>
     <?php endif; ?>
+</div>
 </div>
 
 <!-- Delete Vehicle Modal -->

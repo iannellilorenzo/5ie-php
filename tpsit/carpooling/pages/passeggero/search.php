@@ -13,90 +13,144 @@ $rootPath = "../../";
 // Extra CSS for this page
 $extraCSS = '<link rel="stylesheet" href="' . $rootPath . 'assets/css/search.css">';
 
+// Include database and models
+require_once $rootPath . 'api/config/database.php';
+require_once $rootPath . 'api/models/Viaggio.php';
+require_once $rootPath . 'api/models/Autista.php';
+require_once $rootPath . 'api/models/Prenotazione.php';
+
 // Include header
 include $rootPath . 'includes/header.php';
 
 // Include navbar
 include $rootPath . 'includes/navbar.php';
 
-// Mock data for ride results (in production, this would come from the database)
-$mockRides = [
-    [
-        'id' => 1,
-        'driver_name' => 'Marco Rossi',
-        'driver_rating' => 4.8,
-        'driver_trips' => 42,
-        'from' => 'Milan',
-        'to' => 'Rome',
-        'departure_date' => '2025-04-25',
-        'departure_time' => '08:30',
-        'arrival_time' => '13:30',
-        'price' => 25,
-        'seats_available' => 3,
-        'car' => 'Toyota Prius',
-        'features' => ['AC', 'WiFi', 'No smoking']
-    ],
-    [
-        'id' => 2,
-        'driver_name' => 'Giulia Bianchi',
-        'driver_rating' => 4.9,
-        'driver_trips' => 78,
-        'from' => 'Venice',
-        'to' => 'Florence',
-        'departure_date' => '2025-04-24',
-        'departure_time' => '10:15',
-        'arrival_time' => '13:00',
-        'price' => 18,
-        'seats_available' => 2,
-        'car' => 'Fiat 500',
-        'features' => ['AC', 'Pets allowed']
-    ],
-    [
-        'id' => 3,
-        'driver_name' => 'Alessandro Verdi',
-        'driver_rating' => 4.5,
-        'driver_trips' => 23,
-        'from' => 'Naples',
-        'to' => 'Bari',
-        'departure_date' => '2025-04-26',
-        'departure_time' => '07:00',
-        'arrival_time' => '11:30',
-        'price' => 22,
-        'seats_available' => 4,
-        'car' => 'Renault Clio',
-        'features' => ['AC', 'No smoking']
-    ],
-    [
-        'id' => 4,
-        'driver_name' => 'Francesca Neri',
-        'driver_rating' => 4.7,
-        'driver_trips' => 36,
-        'from' => 'Turin',
-        'to' => 'Genoa',
-        'departure_date' => '2025-04-23',
-        'departure_time' => '14:45',
-        'arrival_time' => '16:30',
-        'price' => 15,
-        'seats_available' => 1,
-        'car' => 'Volkswagen Golf',
-        'features' => ['AC', 'WiFi', 'Music']
-    ]
-];
-
-// Simulate filtering by checking if search parameters are set
-$filtered = false;
-if (isset($_GET['from']) && !empty($_GET['from'])) {
-    $filtered = true;
-    // In a real app, you'd filter the results based on search parameters
-}
-
 // Define search parameters from the form (or set defaults)
 $searchFrom = $_GET['from'] ?? '';
 $searchTo = $_GET['to'] ?? '';
 $searchDate = $_GET['date'] ?? date('Y-m-d');
 $searchPassengers = $_GET['passengers'] ?? 1;
+$minPrice = $_GET['min_price'] ?? '';
+$maxPrice = $_GET['max_price'] ?? '';
+$departTime = $_GET['depart_time'] ?? '';
+$features = $_GET['features'] ?? [];
+
+// Initialize variables
+$trips = [];
+$filtered = false;
+$error = null;
+
+// Check if there are search parameters
+if (!empty($searchFrom) || !empty($searchTo)) {
+    $filtered = true;
+    
+    try {
+        // Connect to database
+        $db = new Database();
+        $conn = $db->getConnection();
+        
+        // Create filter criteria
+        $filters = [];
+        
+        if (!empty($searchFrom)) {
+            $filters['citta_partenza'] = $searchFrom;
+        }
+        
+        if (!empty($searchTo)) {
+            $filters['citta_destinazione'] = $searchTo;
+        }
+        
+        if (!empty($searchDate)) {
+            $filters['data_partenza'] = $searchDate;
+        }
+        
+        if (!empty($searchPassengers)) {
+            $filters['posti_disponibili'] = $searchPassengers;
+        }
+        
+        if (!empty($minPrice)) {
+            $filters['prezzo_min'] = $minPrice;
+        }
+        
+        if (!empty($maxPrice)) {
+            $filters['prezzo_max'] = $maxPrice;
+        }
+        
+        if (!empty($departTime)) {
+            $filters['orario_partenza'] = $departTime;
+        }
+        
+        if (!empty($features)) {
+            foreach ($features as $feature) {
+                $filters[$feature] = 1;
+            }
+        }
+        
+        // Get trips from database
+        $viaggioModel = new Viaggio($conn);
+        $allTrips = $viaggioModel->search($filters);
+        
+        // Format the trips for display
+        $trips = [];
+        $autistaModel = new Autista($conn);
+        $prenotazioneModel = new Prenotazione($conn);
+        
+        foreach ($allTrips as $trip) {
+            // Get driver information
+            $driver = $autistaModel->getById($trip['id_autista']);
+            
+            // Get driver trip count and rating
+            $driverTrips = $viaggioModel->getByDriverId($trip['id_autista']);
+            $tripCount = count($driverTrips);
+            
+            // Get available seats
+            $totalSeats = $trip['posti_totali'] ?? 4; // Default 4 if not specified
+            $bookings = $prenotazioneModel->getAll(['id_viaggio' => $trip['id_viaggio'], 'stato' => 'confermata']);
+            $bookedSeats = array_sum(array_column($bookings, 'n_posti'));
+            $availableSeats = $totalSeats - $bookedSeats;
+            
+            // Skip if not enough seats
+            if ($availableSeats < $searchPassengers) {
+                continue;
+            }
+            
+            // Format features
+            $tripFeatures = [];
+            if ($trip['soste'] == 1) $tripFeatures[] = 'Stops';
+            if ($trip['bagaglio'] == 1) $tripFeatures[] = 'Luggage';
+            if ($trip['animali'] == 1) $tripFeatures[] = 'Pets';
+            
+            // Calculate arrival time based on departure time and estimated duration
+            $departureDateTime = new DateTime($trip['timestamp_partenza']);
+            $durationParts = explode(':', $trip['tempo_stimato'] ?? '00:00');
+            $durationInterval = new DateInterval('PT' . $durationParts[0] . 'H' . $durationParts[1] . 'M');
+            $arrivalDateTime = clone $departureDateTime;
+            $arrivalDateTime->add($durationInterval);
+            
+            $trips[] = [
+                'id' => $trip['id_viaggio'],
+                'driver_name' => $driver['nome'] . ' ' . $driver['cognome'],
+                'driver_rating' => $driver['valutazione'] ?? 0,
+                'driver_trips' => $tripCount,
+                'driver_photo' => $driver['fotografia'] ?? '', // Add this line to get the driver's photo
+                'from' => $trip['citta_partenza'],
+                'to' => $trip['citta_destinazione'],
+                'departure_date' => date('Y-m-d', strtotime($trip['timestamp_partenza'])),
+                'departure_time' => date('H:i', strtotime($trip['timestamp_partenza'])),
+                'arrival_time' => $arrivalDateTime->format('H:i'),
+                'price' => $trip['prezzo_cadauno'],
+                'seats_available' => $availableSeats,
+                'car' => $trip['marca'] . ' ' . $trip['modello'],
+                'features' => $tripFeatures
+            ];
+        }
+    } catch (Exception $e) {
+        $error = "Error retrieving trips: " . $e->getMessage();
+    }
+}
 ?>
 
+<div class="container-wrapper">
 <!-- Search Section -->
 <div class="container my-5">
     <!-- Search Form -->
@@ -211,7 +265,7 @@ $searchPassengers = $_GET['passengers'] ?? 1;
     <!-- Results Stats -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="mb-1"><?php echo count($mockRides); ?> rides found</h4>
+            <h4 class="mb-1"><?php echo count($trips); ?> rides found</h4>
             <p class="text-muted mb-0"><?php echo htmlspecialchars($searchFrom); ?> to <?php echo htmlspecialchars($searchTo); ?>, <?php echo date('j M Y', strtotime($searchDate)); ?></p>
         </div>
         <div class="dropdown">
@@ -229,7 +283,7 @@ $searchPassengers = $_GET['passengers'] ?? 1;
     
     <!-- Ride Results -->
     <div class="row g-4 mb-5">
-        <?php foreach ($mockRides as $ride): ?>
+        <?php foreach ($trips as $ride): ?>
         <div class="col-12">
             <div class="card ride-card border-0 shadow-sm">
                 <div class="card-body p-0">
@@ -237,7 +291,11 @@ $searchPassengers = $_GET['passengers'] ?? 1;
                         <!-- Driver Info -->
                         <div class="col-md-3 border-end p-4 text-center">
                             <div class="driver-avatar mb-3">
-                                <img src="<?php echo $rootPath; ?>assets/img/avatar-placeholder.jpg" alt="Driver profile" class="rounded-circle" width="80" height="80">
+                                <?php if (!empty($ride['driver_photo']) && file_exists($rootPath . $ride['driver_photo'])): ?>
+                                    <img src="<?php echo $rootPath . $ride['driver_photo']; ?>" alt="Driver profile" class="rounded-circle" width="80" height="80">
+                                <?php else: ?>
+                                    <img src="<?php echo $rootPath; ?>assets/img/default-pfp.png" alt="Driver profile" class="rounded-circle" width="80" height="80">
+                                <?php endif; ?>
                             </div>
                             <h6 class="mb-1"><?php echo htmlspecialchars($ride['driver_name']); ?></h6>
                             <div class="text-warning mb-2">
@@ -325,6 +383,7 @@ $searchPassengers = $_GET['passengers'] ?? 1;
         </ul>
     </nav>
     <?php endif; ?>
+</div>
 </div>
 
 <!-- Login/Signup Modal for non-registered users -->

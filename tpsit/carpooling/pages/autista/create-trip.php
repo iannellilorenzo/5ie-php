@@ -164,6 +164,7 @@ include $rootPath . 'includes/header.php';
 include $rootPath . 'includes/navbar.php';
 ?>
 
+<div class="container-wrapper">
 <!-- Create Trip Section -->
 <section class="py-5">
     <div class="container">
@@ -306,6 +307,7 @@ include $rootPath . 'includes/navbar.php';
         </div>
     </div>
 </section>
+</div>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {

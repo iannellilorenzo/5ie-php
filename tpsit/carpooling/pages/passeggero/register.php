@@ -107,6 +107,7 @@ include $rootPath . 'includes/header.php';
 include $rootPath . 'includes/navbar.php';
 ?>
 
+<div class="container-wrapper">
 <!-- Registration Section -->
 <section class="py-5">
     <div class="container">
@@ -278,6 +279,7 @@ include $rootPath . 'includes/navbar.php';
             </div>
         </div>
     </div>
+</div>
 </div>
 
 <!-- Password visibility toggle script -->

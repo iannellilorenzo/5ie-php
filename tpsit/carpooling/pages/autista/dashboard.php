@@ -123,6 +123,7 @@ include $rootPath . 'includes/header.php';
 include $rootPath . 'includes/navbar.php';
 ?>
 
+<div class="container-wrapper">
 <!-- Dashboard Content -->
 <div class="container py-5">
     <!-- Welcome Banner -->
@@ -498,6 +499,7 @@ include $rootPath . 'includes/navbar.php';
         </div>
     </div>
 </div>
+</>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

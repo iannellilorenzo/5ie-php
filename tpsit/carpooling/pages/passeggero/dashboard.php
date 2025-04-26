@@ -41,12 +41,18 @@ try {
     $currentDate = date('Y-m-d');
     
     foreach ($allBookings as $booking) {
-        if ($booking['stato'] === 'annullata') {
+        // Use null coalescing operator to provide default value when key doesn't exist
+        $bookingStatus = $booking['stato'] ?? 'in attesa';
+        
+        if ($bookingStatus === 'annullata') {
             // Skip cancelled bookings
             continue;
         }
         
-        if ($booking['data_partenza'] >= $currentDate) {
+        // Use timestamp_partenza instead of data_partenza (matching your database schema)
+        $departureDate = date('Y-m-d', strtotime($booking['timestamp_partenza'] ?? $currentDate));
+        
+        if ($departureDate >= $currentDate) {
             $upcomingBookings[] = $booking;
         } else {
             $pastBookings[] = $booking;
@@ -64,6 +70,7 @@ include $rootPath . 'includes/header.php';
 include $rootPath . 'includes/navbar.php';
 ?>
 
+<div class="container-wrapper">
 <!-- Dashboard Content -->
 <div class="container py-5">
     <!-- Welcome Banner -->
@@ -176,30 +183,35 @@ include $rootPath . 'includes/navbar.php';
                         <tbody>
                             <?php foreach ($upcomingBookings as $booking): ?>
                                 <tr>
-                                    <td><?php echo date('M d, Y', strtotime($booking['data_partenza'])); ?></td>
-                                    <td><?php echo htmlspecialchars($booking['partenza']); ?></td>
-                                    <td><?php echo htmlspecialchars($booking['destinazione']); ?></td>
-                                    <td><?php echo htmlspecialchars($booking['ora_partenza']); ?></td>
+                                    <td><?php echo date('M d, Y', strtotime($booking['timestamp_partenza'] ?? '')); ?></td>
+                                    <td><?php echo htmlspecialchars($booking['citta_partenza'] ?? ''); ?></td>
+                                    <td><?php echo htmlspecialchars($booking['citta_destinazione'] ?? ''); ?></td>
+                                    <td><?php echo date('H:i', strtotime($booking['timestamp_partenza'] ?? 'now')); ?></td>
                                     <td>
-                                        <?php echo htmlspecialchars($booking['nome_autista'] . ' ' . $booking['cognome_autista']); ?>
+                                        <?php echo htmlspecialchars(($booking['nome_autista'] ?? '') . ' ' . ($booking['cognome_autista'] ?? '')); ?>
                                         <div class="text-warning small">
                                             <i class="bi bi-star-fill"></i>
-                                            <span><?php echo isset($booking['valutazione_autista']) ? number_format($booking['valutazione_autista'], 1) : '-'; ?></span>
+                                            <span><?php echo isset($booking['voto_autista']) ? number_format($booking['voto_autista'], 1) : '-'; ?></span>
                                         </div>
                                     </td>
                                     <td>
-                                        <?php if ($booking['stato'] == 'confermata'): ?>
+                                        <?php 
+                                        $status = $booking['stato'] ?? 'in attesa';
+                                        if ($status == 'confermata'): ?>
                                             <span class="badge bg-success">Confirmed</span>
-                                        <?php elseif ($booking['stato'] == 'in attesa'): ?>
+                                        <?php elseif ($status == 'in attesa'): ?>
                                             <span class="badge bg-warning text-dark">Pending</span>
                                         <?php else: ?>
-                                            <span class="badge bg-secondary"><?php echo ucfirst($booking['stato']); ?></span>
+                                            <span class="badge bg-secondary"><?php echo ucfirst($status); ?></span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <a href="<?php echo $rootPath; ?>pages/passeggero/booking-details.php?id=<?php echo $booking['id']; ?>" class="btn btn-sm btn-outline-primary">
+                                        <button type="button" class="btn btn-sm btn-outline-primary view-booking-details" 
+                                               data-bs-toggle="modal" 
+                                               data-bs-target="#bookingDetailsModal"
+                                               data-booking-id="<?php echo $booking['id_prenotazione'] ?? 0; ?>">
                                             <i class="bi bi-eye"></i> Details
-                                        </a>
+                                        </button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -246,13 +258,13 @@ include $rootPath . 'includes/navbar.php';
                             foreach ($recentPastBookings as $booking): 
                             ?>
                                 <tr>
-                                    <td><?php echo date('M d, Y', strtotime($booking['data_partenza'])); ?></td>
+                                    <td><?php echo date('M d, Y', strtotime($booking['timestamp_partenza'] ?? '')); ?></td>
                                     <td>
-                                        <?php echo htmlspecialchars($booking['partenza']); ?> → 
-                                        <?php echo htmlspecialchars($booking['destinazione']); ?>
+                                        <?php echo htmlspecialchars($booking['citta_partenza'] ?? ''); ?> → 
+                                        <?php echo htmlspecialchars($booking['citta_destinazione'] ?? ''); ?>
                                     </td>
-                                    <td><?php echo htmlspecialchars($booking['nome_autista'] . ' ' . $booking['cognome_autista']); ?></td>
-                                    <td>€<?php echo number_format($booking['prezzo'] * $booking['n_posti'], 2); ?></td>
+                                    <td><?php echo htmlspecialchars(($booking['nome_autista'] ?? '') . ' ' . ($booking['cognome_autista'] ?? '')); ?></td>
+                                    <td>€<?php echo number_format(($booking['prezzo_cadauno'] ?? 0) * ($booking['n_posti'] ?? 1), 2); ?></td>
                                     <td>
                                         <?php if (isset($booking['voto_autista'])): ?>
                                             <div class="text-warning">
@@ -265,12 +277,22 @@ include $rootPath . 'includes/navbar.php';
                                                 <?php endfor; ?>
                                             </div>
                                         <?php else: ?>
-                                            <a href="<?php echo $rootPath; ?>pages/passeggero/rate.php?booking_id=<?php echo $booking['id']; ?>" class="btn btn-sm btn-outline-secondary">
+                                            <a href="<?php echo $rootPath; ?>pages/passeggero/rate.php?booking_id=<?php echo $booking['id_prenotazione']; ?>" class="btn btn-sm btn-outline-secondary">
                                                 Rate Trip
                                             </a>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
+                                <?php if (isset($booking['stato']) && $booking['stato'] === 'completata' && empty($booking['voto_autista'])): ?>
+                                    <tr>
+                                        <td colspan="5">
+                                            <div class="alert alert-warning mb-0">
+                                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                                Please <a href="<?php echo $rootPath; ?>pages/passeggero/rate.php?booking_id=<?php echo $booking['id_prenotazione']; ?>" class="alert-link">rate your driver</a> for this trip.
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
@@ -279,6 +301,359 @@ include $rootPath . 'includes/navbar.php';
         </div>
     </div>
 </div>
+
+<!-- Booking Details Modal - Fresh Implementation -->
+<div class="modal fade" id="bookingDetailsModal" tabindex="-1" aria-labelledby="bookingDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bookingDetailsModalLabel">Booking Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4" id="loadingIndicator">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading booking details...</p>
+                </div>
+                
+                <div id="bookingContent" style="display: none;">
+                    <!-- Trip Route Section -->
+                    <div class="trip-route mb-4">
+                        <div class="d-flex">
+                            <div class="timeline me-3">
+                                <div class="timeline-start"></div>
+                                <div class="timeline-line"></div>
+                                <div class="timeline-end"></div>
+                            </div>
+                            
+                            <div class="flex-grow-1">
+                                <div class="mb-3">
+                                    <p class="small text-muted mb-0" id="departureTime">--:--</p>
+                                    <h5 class="mb-0" id="departureCity">Loading...</h5>
+                                </div>
+                                
+                                <div>
+                                    <p class="small text-muted mb-0" id="arrivalTime">--:-- (estimated)</p>
+                                    <h5 class="mb-0" id="destinationCity">Loading...</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 text-muted">Date</h6>
+                                    <p class="card-text fw-bold" id="tripDate">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 text-muted">Booking Status</h6>
+                                    <p class="card-text" id="bookingStatus">
+                                        <span class="badge bg-secondary">Loading...</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 text-muted">Booked On</h6>
+                                    <p class="card-text" id="bookingDate">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 text-muted">Seats</h6>
+                                    <p class="card-text" id="seatCount">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 text-muted">Price</h6>
+                                    <p class="card-text fw-bold" id="tripPrice">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Trip Features -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-3 text-muted">Trip Features</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                <span class="badge bg-light text-dark" id="feature-stops" style="display: none;">
+                                    <i class="bi bi-sign-stop me-1"></i> Stops allowed
+                                </span>
+                                <span class="badge bg-light text-dark" id="feature-luggage" style="display: none;">
+                                    <i class="bi bi-briefcase me-1"></i> Luggage allowed
+                                </span>
+                                <span class="badge bg-light text-dark" id="feature-pets" style="display: none;">
+                                    <i class="bi bi-heart me-1"></i> Pets allowed
+                                </span>
+                                <span id="no-features" class="text-muted">No special features</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Driver Information -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-3 text-muted">Driver Information</h6>
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <img src="<?php echo $rootPath; ?>assets/img/default-pfp.png" id="driverPhoto" 
+                                         alt="Driver Photo" class="rounded-circle" width="60" height="60">
+                                </div>
+                                <div>
+                                    <h6 class="mb-1" id="driverName">Loading...</h6>
+                                    <div class="text-warning">
+                                        <i class="bi bi-star-fill me-1"></i>
+                                        <span id="driverRating">0.0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Vehicle Information -->
+                    <div class="card mb-4" id="vehicleInfoCard" style="display: none;">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-3 text-muted">Vehicle Information</h6>
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="bi bi-car-front" style="font-size: 2rem;"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1" id="vehicleName">Loading...</h6>
+                                    <p class="text-muted small mb-0" id="licensePlate">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Booking Actions -->
+                    <div id="bookingActions" class="mt-4" style="display: none;">
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-danger" id="cancelBookingBtn" style="display: none;">
+                                <i class="bi bi-x-circle me-2"></i> Cancel Booking
+                            </button>
+                            
+                            <a href="#" class="btn btn-outline-primary" id="rateDriverBtn" style="display: none;">
+                                <i class="bi bi-star me-2"></i> Rate Driver
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Error Message -->
+                <div id="errorMessage" class="alert alert-danger" style="display: none;">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <span id="errorText"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+<!-- JavaScript for the Modal -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const bookingDetailsModal = document.getElementById('bookingDetailsModal');
+    
+    if (bookingDetailsModal) {
+        bookingDetailsModal.addEventListener('show.bs.modal', function(event) {
+            // Get the button that triggered the modal
+            const button = event.relatedTarget;
+            const bookingId = button.getAttribute('data-booking-id');
+            
+            // Show loading indicator, hide content and error
+            document.getElementById('loadingIndicator').style.display = 'block';
+            document.getElementById('bookingContent').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            
+            // Reset features display
+            document.getElementById('feature-stops').style.display = 'none';
+            document.getElementById('feature-luggage').style.display = 'none';
+            document.getElementById('feature-pets').style.display = 'none';
+            document.getElementById('no-features').style.display = 'inline';
+            
+            // Fetch booking details
+            fetch('<?php echo $rootPath; ?>pages/passeggero/get-booking-details.php?id=' + bookingId)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Hide loading indicator, show content
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                    document.getElementById('bookingContent').style.display = 'block';
+                    
+                    // Debugging - log the data
+                    console.log('Booking details:', data);
+                    
+                    // Populate modal with data
+                    document.getElementById('departureCity').textContent = data.citta_partenza || 'Not specified';
+                    document.getElementById('destinationCity').textContent = data.citta_destinazione || 'Not specified';
+                    document.getElementById('departureTime').textContent = data.departure_time || '--:--';
+                    document.getElementById('arrivalTime').textContent = data.arrival_time || '--:-- (estimated)';
+                    document.getElementById('tripDate').textContent = data.departure_date || 'Not specified';
+                    document.getElementById('bookingDate').textContent = data.booking_date || 'Not specified';
+                    document.getElementById('seatCount').textContent = data.n_posti || '1';
+                    document.getElementById('tripPrice').textContent = '€' + (data.total_price || '0.00');
+                    document.getElementById('driverName').textContent = data.driver_name || 'Not specified';
+                    
+                    // Update driver rating with stars
+                    const driverRating = parseFloat(data.driver_rating) || 0;
+                    const fullStars = Math.floor(driverRating);
+                    const halfStar = driverRating % 1 >= 0.5;
+                    let starsHtml = '';
+                    
+                    // Create full stars
+                    for (let i = 0; i < fullStars; i++) {
+                        starsHtml += '<i class="bi bi-star-fill text-warning"></i> ';
+                    }
+                    
+                    // Add half star if needed
+                    if (halfStar) {
+                        starsHtml += '<i class="bi bi-star-half text-warning"></i> ';
+                    }
+                    
+                    // Add empty stars
+                    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+                    for (let i = 0; i < emptyStars; i++) {
+                        starsHtml += '<i class="bi bi-star text-warning"></i> ';
+                    }
+                    
+                    // Update the driver rating display
+                    document.getElementById('driverRating').innerHTML = starsHtml + 
+                        `<span class="ms-1 text-muted small">(${data.driver_rating || '0.0'})</span>`;
+                    
+                    // Show vehicle information if available
+                    const vehicleInfoCard = document.getElementById('vehicleInfoCard');
+                    if (data.marca && data.modello) {
+                        vehicleInfoCard.style.display = 'block';
+                        
+                        let vehicleName = data.marca + ' ' + data.modello;
+                        if (data.colore) {
+                            vehicleName += ' (' + data.colore + ')';
+                        }
+                        document.getElementById('vehicleName').textContent = vehicleName;
+                        
+                        if (data.targa) {
+                            document.getElementById('licensePlate').textContent = 'License plate: ' + data.targa;
+                        } else {
+                            document.getElementById('licensePlate').textContent = '';
+                        }
+                    } else {
+                        vehicleInfoCard.style.display = 'none';
+                    }
+                    
+                    // Update trip features
+                    let hasFeatures = false;
+                    
+                    if (data.soste == 1) {
+                        document.getElementById('feature-stops').style.display = 'inline-flex';
+                        hasFeatures = true;
+                    }
+                    
+                    if (data.bagaglio == 1) {
+                        document.getElementById('feature-luggage').style.display = 'inline-flex';
+                        hasFeatures = true;
+                    }
+                    
+                    if (data.animali == 1) {
+                        document.getElementById('feature-pets').style.display = 'inline-flex';
+                        hasFeatures = true;
+                    }
+                    
+                    document.getElementById('no-features').style.display = hasFeatures ? 'none' : 'inline';
+                    
+                    // Update driver photo if available
+                    if (data.driver_photo && data.driver_photo !== '') {
+                        document.getElementById('driverPhoto').src = '<?php echo $rootPath; ?>' + data.driver_photo;
+                    } else {
+                        document.getElementById('driverPhoto').src = '<?php echo $rootPath; ?>assets/img/default-pfp.png';
+                    }
+                    
+                    // Set booking status
+                    const status = data.stato || 'in attesa';
+                    let statusBadge = '';
+                    
+                    if (status === 'confermata') {
+                        statusBadge = '<span class="badge bg-success">Confirmed</span>';
+                    } else if (status === 'in attesa') {
+                        statusBadge = '<span class="badge bg-warning text-dark">Pending</span>';
+                    } else if (status === 'rifiutata') {
+                        statusBadge = '<span class="badge bg-danger">Rejected</span>';
+                    } else if (status === 'completata') {
+                        statusBadge = '<span class="badge bg-info">Completed</span>';
+                    } else {
+                        statusBadge = `<span class="badge bg-secondary">${status}</span>`;
+                    }
+                    
+                    document.getElementById('bookingStatus').innerHTML = statusBadge;
+                    
+                    // Show/hide actions based on booking status
+                    const bookingActions = document.getElementById('bookingActions');
+                    const cancelBtn = document.getElementById('cancelBookingBtn');
+                    const rateDriverBtn = document.getElementById('rateDriverBtn');
+                    
+                    bookingActions.style.display = 'none';
+                    cancelBtn.style.display = 'none';
+                    rateDriverBtn.style.display = 'none';
+                    
+                    // Only show cancel button for pending or confirmed bookings
+                    if (status === 'in attesa' || status === 'confermata') {
+                        bookingActions.style.display = 'block';
+                        cancelBtn.style.display = 'block';
+                        cancelBtn.onclick = function() {
+                            if (confirm('Are you sure you want to cancel this booking?')) {
+                                window.location.href = '<?php echo $rootPath; ?>pages/passeggero/cancel-booking.php?id=' + bookingId;
+                            }
+                        };
+                    }
+                    
+                    // Show rating button for completed trips
+                    if (status === 'completata' && !data.has_rating) {
+                        bookingActions.style.display = 'block';
+                        rateDriverBtn.style.display = 'inline-block';
+                        rateDriverBtn.href = '<?php echo $rootPath; ?>pages/passeggero/rate.php?booking_id=' + bookingId;
+                    }
+                })
+                .catch(error => {
+                    // Show error message
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                    document.getElementById('bookingContent').style.display = 'none';
+                    document.getElementById('errorMessage').style.display = 'block';
+                    document.getElementById('errorText').textContent = 'Failed to load booking details: ' + error.message;
+                    console.error('Error fetching booking details:', error);
+                });
+        });
+    }
+});
+</script>
 
 <?php
 // Include footer

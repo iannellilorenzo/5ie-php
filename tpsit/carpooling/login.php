@@ -94,6 +94,7 @@ if (isset($_GET['logout']) && $_GET['logout'] == 'success') {
 }
 ?>
 
+<div class="container-wrapper">
 <!-- Login Section -->
 <section class="py-5">
     <div class="container">
@@ -199,6 +200,7 @@ if (isset($_GET['logout']) && $_GET['logout'] == 'success') {
         </div>
     </div>
 </section>
+</div>
 
 <!-- Custom JS for login page -->
 <script>

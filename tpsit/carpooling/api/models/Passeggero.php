@@ -40,7 +40,7 @@ class Passeggero {
         try {
             $query = "SELECT 
                         p.id_passeggero, p.nome, p.cognome, p.email,
-                        p.documento_identita, p.telefono
+                        p.documento_identita, p.telefono, p.password, p.fotografia
                     FROM " . $this->table . " p
                     WHERE p.id_passeggero = ?";
                     
@@ -100,7 +100,7 @@ class Passeggero {
     
     public function update($id, $data) {
         try {
-            $checkQuery = "SELECT COUNT(*) FROM " . $this->table . " WHERE id = ?";
+            $checkQuery = "SELECT COUNT(*) FROM " . $this->table . " WHERE id_passeggero = ?";
             $checkStmt = $this->conn->prepare($checkQuery);
             $checkStmt->execute([$id]);
             
@@ -111,6 +111,7 @@ class Passeggero {
             $fields = [];
             $params = [];
             
+            // All your field checks
             if (isset($data['nome'])) {
                 $fields[] = "nome = ?";
                 $params[] = $data['nome'];
@@ -136,9 +137,14 @@ class Passeggero {
                 $params[] = password_hash($data['password'], PASSWORD_ARGON2ID);
             }
             
+            if (isset($data['fotografia'])) {
+                $fields[] = "fotografia = ?";
+                $params[] = $data['fotografia'];
+            }
+            
             $params[] = $id;
             
-            $query = "UPDATE " . $this->table . " SET " . implode(", ", $fields) . " WHERE id = ?";
+            $query = "UPDATE " . $this->table . " SET " . implode(", ", $fields) . " WHERE id_passeggero = ?";
             $stmt = $this->conn->prepare($query);
             $stmt->execute($params);
             

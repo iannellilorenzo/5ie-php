@@ -111,7 +111,41 @@ class BookingController extends BaseController {
                 return;
             }
             
-            parent::create($data);
+            $bookingId = $this->model->create($data);
+            
+            // After successful booking creation, send email notification to driver
+            if ($bookingId) {
+                // Get the booking details including trip and passenger info
+                require_once 'api/utils/EmailService.php';
+                require_once 'api/models/Viaggio.php';
+                require_once 'api/models/Autista.php';
+                require_once 'api/models/Passeggero.php';
+                
+                $booking = $this->model->getById($bookingId);
+                
+                // Get driver email
+                $autistaModel = new Autista($this->conn);
+                $driver = $autistaModel->getById($booking['id_autista']);
+                
+                // Get passenger info
+                $passeggeroModel = new Passeggero($this->conn);
+                $passenger = $passeggeroModel->getById($booking['id_passeggero']);
+                
+                // Get trip details
+                $viaggioModel = new Viaggio($this->conn);
+                $trip = $viaggioModel->getById($booking['id_viaggio']);
+                
+                // Send email notification
+                $emailService = new EmailService();
+                $emailService->sendBookingNotification(
+                    $driver['email'],
+                    $driver['nome'] . ' ' . $driver['cognome'],
+                    $passenger,
+                    array_merge($trip, ['n_posti' => $booking['n_posti']])
+                );
+            }
+            
+            sendSuccess(['id' => $bookingId]);
         } catch (Exception $e) {
             sendError('Failed to create booking: ' . $e->getMessage(), 500);
         }

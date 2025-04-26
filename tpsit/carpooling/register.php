@@ -1,4 +1,4 @@
-<?php
+<d?php
 // Start session if not already started
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
@@ -25,6 +25,7 @@ include $rootPath . 'includes/header.php';
 include $rootPath . 'includes/navbar.php';
 ?>
 
+<div class="container-wrapper">
 <!-- Registration Selection Section -->
 <section class="py-5">
     <div class="container">
@@ -167,6 +168,7 @@ include $rootPath . 'includes/navbar.php';
         </div>
     </div>
 </section>
+</div>
 
 <?php
 // Include footer

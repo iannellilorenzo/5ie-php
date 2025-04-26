@@ -56,7 +56,50 @@ if (isset($_GET['action']) && isset($_GET['id']) && !empty($_GET['id'])) {
             }
         } else if ($action === 'complete') {
             try {
+                // Update trip status
                 $viaggioModel->update($tripId, ['stato' => 'completato']);
+                
+                // Get trip details and bookings
+                $trip = $viaggioModel->getById($tripId);
+                $prenotazioneModel = new Prenotazione($conn);
+                $bookings = $prenotazioneModel->getAll(['id_viaggio' => $tripId, 'stato' => 'confermata']);
+                
+                // Get driver info
+                $driver = $autistaModel->getById($trip['id_autista']);
+                $driverName = $driver['nome'] . ' ' . $driver['cognome'];
+                
+                // Send completion emails to all passengers and the driver
+                require_once $rootPath . 'api/utils/EmailService.php';
+                $emailService = new EmailService();
+                
+                foreach ($bookings as $booking) {
+                    // Update booking status to completed
+                    $prenotazioneModel->update($booking['id_prenotazione'], ['stato' => 'completata']);
+                    
+                    // Get passenger info
+                    $passeggeroModel = new Passeggero($conn);
+                    $passenger = $passeggeroModel->getById($booking['id_passeggero']);
+                    $passengerName = $passenger['nome'] . ' ' . $passenger['cognome'];
+                    
+                    // Send email to passenger
+                    $emailService->sendTripCompletionNotification(
+                        $passenger['email'],
+                        $passengerName,
+                        $trip,
+                        $driverName,
+                        false // passenger is not a driver
+                    );
+                    
+                    // Send email to driver for each passenger
+                    $emailService->sendTripCompletionNotification(
+                        $driver['email'],
+                        $driverName,
+                        $trip,
+                        $passengerName,
+                        true // driver is not a passenger
+                    );
+                }
+                
                 $success = "Trip marked as completed successfully";
             } catch (Exception $e) {
                 $error = $e->getMessage();
@@ -132,6 +175,7 @@ include $rootPath . 'includes/header.php';
 include $rootPath . 'includes/navbar.php';
 ?>
 
+<div class="container-wrapper">
 <!-- My Trips Content -->
 <div class="container py-5">
     <!-- Page Header -->
@@ -285,65 +329,67 @@ include $rootPath . 'includes/navbar.php';
                             </td>
                             <td>
                                 <div class="d-flex gap-2">
-                                    <!-- View Details Button -->
+                                    <!-- View Details Button (always visible) -->
                                     <button type="button"
-                                           class="btn btn-sm btn-outline-primary" 
-                                           data-bs-toggle="modal" 
-                                           data-bs-target="#viewTripModal"
-                                           data-trip-id="<?php echo $trip['id_viaggio']; ?>"
-                                           data-trip-route="<?php echo htmlspecialchars($trip['citta_partenza'] . ' → ' . $trip['citta_destinazione']); ?>"
-                                           data-trip-date="<?php echo $departureDate; ?>"
-                                           data-trip-time="<?php echo $departureTime; ?>"
-                                           data-trip-price="<?php echo number_format($trip['prezzo_cadauno'], 2); ?>"
-                                           data-trip-duration="<?php echo $trip['tempo_stimato'] ?? '00:00'; ?>"
-                                           data-trip-stops="<?php echo $trip['soste'] ? '1' : '0'; ?>"
-                                           data-trip-luggage="<?php echo $trip['bagaglio'] ? '1' : '0'; ?>"
-                                           data-trip-pets="<?php echo $trip['animali'] ? '1' : '0'; ?>"
-                                           title="View Details">
+                                            class="btn btn-sm btn-outline-primary" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#viewTripModal"
+                                            data-trip-id="<?php echo $trip['id_viaggio']; ?>"
+                                            data-trip-route="<?php echo htmlspecialchars($trip['citta_partenza'] . ' → ' . $trip['citta_destinazione']); ?>"
+                                            data-trip-date="<?php echo $departureDate; ?>"
+                                            data-trip-time="<?php echo $departureTime; ?>"
+                                            data-trip-price="<?php echo number_format($trip['prezzo_cadauno'], 2); ?>"
+                                            data-trip-duration="<?php echo $trip['tempo_stimato'] ?? '00:00'; ?>"
+                                            data-trip-stops="<?php echo $trip['soste'] ? '1' : '0'; ?>"
+                                            data-trip-luggage="<?php echo $trip['bagaglio'] ? '1' : '0'; ?>"
+                                            data-trip-pets="<?php echo $trip['animali'] ? '1' : '0'; ?>"
+                                            title="View Details">
                                         <i class="bi bi-eye"></i>
                                     </button>
                                     
-                                    <?php if ($departureDateTime > new DateTime()): ?>
-                                        <!-- Edit Trip Button (only for future trips) -->
-                                        <button type="button"
-                                               class="btn btn-sm btn-outline-secondary"
-                                               data-bs-toggle="modal"
-                                               data-bs-target="#editTripModal"
-                                               data-trip-id="<?php echo $trip['id_viaggio']; ?>"
-                                               data-trip-departure="<?php echo htmlspecialchars($trip['citta_partenza']); ?>"
-                                               data-trip-destination="<?php echo htmlspecialchars($trip['citta_destinazione']); ?>"
-                                               data-trip-date="<?php echo date('Y-m-d', strtotime($trip['timestamp_partenza'])); ?>"
-                                               data-trip-time="<?php echo date('H:i', strtotime($trip['timestamp_partenza'])); ?>"
-                                               data-trip-price="<?php echo $trip['prezzo_cadauno']; ?>"
-                                               data-trip-duration="<?php echo $trip['tempo_stimato'] ?? '00:00'; ?>"
-                                               data-trip-stops="<?php echo $trip['soste'] ? '1' : '0'; ?>"
-                                               data-trip-luggage="<?php echo $trip['bagaglio'] ? '1' : '0'; ?>"
-                                               data-trip-pets="<?php echo $trip['animali'] ? '1' : '0'; ?>"
-                                               title="Edit Trip">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        
-                                        <!-- Cancel Trip Button (already using modal) -->
-                                        <button class="btn btn-sm btn-outline-danger"
-                                               data-bs-toggle="modal" 
-                                               data-bs-target="#cancelTripModal" 
-                                               data-trip-id="<?php echo $trip['id_viaggio']; ?>"
-                                               data-trip-route="<?php echo htmlspecialchars($trip['citta_partenza'] . ' to ' . $trip['citta_destinazione']); ?>"
-                                               title="Cancel Trip">
-                                            <i class="bi bi-x-circle"></i>
-                                        </button>
-                                    <?php elseif ($departureDateTime < new DateTime()): ?>
-                                        <!-- Mark as Completed Button -->
-                                        <button type="button"
-                                               class="btn btn-sm btn-outline-success"
-                                               data-bs-toggle="modal"
-                                               data-bs-target="#completeTripModal"
-                                               data-trip-id="<?php echo $trip['id_viaggio']; ?>"
-                                               data-trip-route="<?php echo htmlspecialchars($trip['citta_partenza'] . ' → ' . $trip['citta_destinazione']); ?>"
-                                               data-trip-date="<?php echo $departureDate; ?>"
-                                               title="Mark as Completed">
-                                            <i class="bi bi-check-circle"></i>
-                                        </button>
+                                    <?php if ($trip['stato'] !== 'completato' && $trip['stato'] !== 'annullato'): ?>
+                                        <?php if ($departureDateTime > new DateTime()): ?>
+                                            <!-- Edit Trip Button (only for future trips) -->
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-secondary"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editTripModal"
+                                                    data-trip-id="<?php echo $trip['id_viaggio']; ?>"
+                                                    data-trip-departure="<?php echo htmlspecialchars($trip['citta_partenza']); ?>"
+                                                    data-trip-destination="<?php echo htmlspecialchars($trip['citta_destinazione']); ?>"
+                                                    data-trip-date="<?php echo date('Y-m-d', strtotime($trip['timestamp_partenza'])); ?>"
+                                                    data-trip-time="<?php echo date('H:i', strtotime($trip['timestamp_partenza'])); ?>"
+                                                    data-trip-price="<?php echo $trip['prezzo_cadauno']; ?>"
+                                                    data-trip-duration="<?php echo $trip['tempo_stimato'] ?? '00:00'; ?>"
+                                                    data-trip-stops="<?php echo $trip['soste'] ? '1' : '0'; ?>"
+                                                    data-trip-luggage="<?php echo $trip['bagaglio'] ? '1' : '0'; ?>"
+                                                    data-trip-pets="<?php echo $trip['animali'] ? '1' : '0'; ?>"
+                                                    title="Edit Trip">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            
+                                            <!-- Cancel Trip Button -->
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#cancelTripModal" 
+                                                    data-trip-id="<?php echo $trip['id_viaggio']; ?>"
+                                                    data-trip-route="<?php echo htmlspecialchars($trip['citta_partenza'] . ' to ' . $trip['citta_destinazione']); ?>"
+                                                    title="Cancel Trip">
+                                                <i class="bi bi-x-circle"></i>
+                                            </button>
+                                        <?php elseif ($departureDateTime < new DateTime()): ?>
+                                            <!-- Mark as Completed Button -->
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-success"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#completeTripModal"
+                                                    data-trip-id="<?php echo $trip['id_viaggio']; ?>"
+                                                    data-trip-route="<?php echo htmlspecialchars($trip['citta_partenza'] . ' → ' . $trip['citta_destinazione']); ?>"
+                                                    data-trip-date="<?php echo $departureDate; ?>"
+                                                    title="Mark as Completed">
+                                                <i class="bi bi-check-circle"></i>
+                                            </button>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 </div>
                             </td>
@@ -569,6 +615,29 @@ include $rootPath . 'includes/navbar.php';
                     <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Mark Trip as Completed Modal -->
+<div class="modal fade" id="completeTripModal" tabindex="-1" aria-labelledby="completeTripModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="completeTripModalLabel">Mark Trip as Completed</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to mark this trip as completed?</p>
+                <p><strong>Route:</strong> <span id="completeTripRoute"></span></p>
+                <p><strong>Date:</strong> <span id="completeTripDate"></span></p>
+                <p class="text-info"><i class="bi bi-info-circle"></i> This will update the trip status to completed and allow passengers to leave ratings.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a href="#" id="confirmCompleteBtn" class="btn btn-success">Yes, Mark as Completed</a>
+            </div>
         </div>
     </div>
 </div>

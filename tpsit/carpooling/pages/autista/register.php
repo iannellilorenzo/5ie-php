@@ -1,4 +1,4 @@
-<?php
+<d?php
 // Start session if not already started
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
@@ -131,6 +131,7 @@ include $rootPath . 'includes/header.php';
 include $rootPath . 'includes/navbar.php';
 ?>
 
+<div class="container-wrapper">
 <!-- Registration Section -->
 <section class="py-5">
     <div class="container">
@@ -326,6 +327,7 @@ include $rootPath . 'includes/navbar.php';
         </div>
     </div>
 </section>
+</div>
 
 <!-- Terms and Conditions Modal -->
 <div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">

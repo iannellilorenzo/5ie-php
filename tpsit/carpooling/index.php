@@ -17,6 +17,7 @@ include 'includes/header.php';
 include 'includes/navbar.php';
 ?>
 
+<div class="container-wrapper">
 <!-- Hero Section -->
 <section class="hero-section">
     <div class="container">
@@ -194,6 +195,7 @@ include 'includes/navbar.php';
         </div>
     </div>
 </section>
+</div>
 
 <?php
 // Include footer

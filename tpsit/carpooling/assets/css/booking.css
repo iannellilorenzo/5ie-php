@@ -1,0 +1,37 @@
+/* Timeline styling for the route display */
+.timeline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-right: 15px;
+}
+
+.timeline-start,
+.timeline-end {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #0d6efd;
+}
+
+.timeline-line {
+    width: 2px;
+    height: 70px;
+    background-color: #0d6efd;
+    margin: 5px 0;
+}
+
+.price-tag {
+    color: #0d6efd;
+}
+
+.price-summary {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+.driver-avatar img {
+    object-fit: cover;
+    border: 2px solid #e9ecef;
+}
