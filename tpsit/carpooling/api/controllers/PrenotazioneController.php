@@ -13,6 +13,27 @@ class BookingController extends BaseController {
             global $user;
             $filters = [];
             
+            // Adjust this section to properly handle the trip_id parameter
+            // Add support for the trip_id parameter that the current endpoint uses
+            if (isset($_GET['trip_id']) || isset($_GET['viaggio_id'])) {
+                $filters['id_viaggio'] = $_GET['trip_id'] ?? $_GET['viaggio_id'];
+                
+                // If user is a driver, verify they own this trip
+                if (isset($user['tipo']) && $user['tipo'] == 'autista') {
+                    if (!class_exists('Viaggio')) {
+                        require_once 'api/models/Viaggio.php';
+                    }
+                    
+                    $tripModel = new Viaggio($this->conn);
+                    $trip = $tripModel->getById($filters['id_viaggio']);
+                    
+                    if (!$trip || $trip['id_autista'] != $user['id']) {
+                        sendError('You can only view bookings for your own trips', 403);
+                        return;
+                    }
+                }
+            }
+            
             // Passengers can only see their own bookings
             if (isset($user['tipo']) && $user['tipo'] == 'passeggero') {
                 $filters['passeggero_id'] = $user['id'];

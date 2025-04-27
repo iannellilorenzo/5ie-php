@@ -543,7 +543,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('editTripBtn').href = '<?php echo $rootPath; ?>pages/autista/edit-trip.php?id=' + encodeURIComponent(tripId);
             
             // Load bookings via AJAX
-            fetch('<?php echo $rootPath; ?>pages/autista/get-bookings.php?trip_id=' + encodeURIComponent(tripId))
+            fetch('<?php echo $rootPath; ?>api/prenotazione?trip_id=' + encodeURIComponent(tripId))
                 .then(response => response.json())
                 .then(data => {
                     const bookingsTable = document.getElementById('viewTripBookings');

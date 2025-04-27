@@ -710,7 +710,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             
             // Load bookings via AJAX
-            fetch('get-bookings.php?trip_id=' + encodeURIComponent(tripId))
+            fetch('<?php echo $rootPath; ?>api/prenotazione?trip_id=' + encodeURIComponent(tripId))
                 .then(response => response.json())
                 .then(data => {
                     const bookingsTable = document.getElementById('viewTripBookings');
