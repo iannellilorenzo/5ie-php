@@ -63,8 +63,8 @@ class Prenotazione {
                         pa.nome as nome_passeggero, pa.cognome as cognome_passeggero,
                         v.citta_partenza, v.citta_destinazione, v.timestamp_partenza, 
                         v.prezzo_cadauno, v.tempo_stimato, v.soste, v.bagaglio, v.animali,
-                        v.id_autista, a.nome as nome_autista, a.cognome as cognome_autista,
-                        a.fotografia as foto_autista,
+                        v.id_autista, v.stato as stato, a.nome as nome_autista,
+                        a.cognome as cognome_autista, a.fotografia as foto_autista,
                         au.targa, au.marca, au.modello
                     FROM prenotazioni p
                     JOIN passeggeri pa ON p.id_passeggero = pa.id_passeggero

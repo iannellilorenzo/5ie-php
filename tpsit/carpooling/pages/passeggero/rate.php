@@ -46,7 +46,7 @@ if (!isset($_GET['booking_id']) || empty($_GET['booking_id'])) {
             $error = "Booking not found";
         } else if ($booking['id_passeggero'] != $_SESSION['user_id']) {
             $error = "You cannot rate this booking";
-        } else if ($booking['stato'] !== 'completata') {
+        } else if ($booking['stato'] !== 'completato') {
             $error = "You can only rate completed trips";
         } else if (!empty($booking['voto_autista'])) {
             $error = "You have already rated this driver";
@@ -125,12 +125,11 @@ include $rootPath . 'includes/navbar.php';
                         <div class="trip-info mb-4 p-3 bg-light rounded">
                             <div class="d-flex align-items-center mb-3">
                                 <div class="me-3">
-                                    <?php if (!empty($booking['foto_autista'])): ?>
-                                        <img src="<?php echo $rootPath . $booking['foto_autista']; ?>" alt="Driver" class="rounded-circle" width="60" height="60">
+                                    <?php if (!empty($booking['foto_autista']) && file_exists($rootPath . $booking['foto_autista'])): ?>
+                                        <img src="<?php echo $rootPath . $booking['foto_autista']; ?>" alt="Driver" class="rounded-circle" width="60" height="60" style="object-fit: cover;">
                                     <?php else: ?>
-                                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width:60px;height:60px;">
-                                            <i class="bi bi-person" style="font-size: 1.5rem;"></i>
-                                        </div>
+                                        <!-- Default profile photo -->
+                                        <img src="<?php echo $rootPath; ?>assets/img/default-pfp.png" alt="Driver" class="rounded-circle" width="60" height="60">
                                     <?php endif; ?>
                                 </div>
                                 <div>
@@ -155,25 +154,55 @@ include $rootPath . 'includes/navbar.php';
                             <div class="mb-4">
                                 <label class="form-label fw-bold">How was your trip?</label>
                                 <div class="star-rating text-center my-3">
-                                    <div class="rating-container d-flex justify-content-center gap-2" style="font-size: 2rem;">
-                                        <input type="radio" id="star5" name="rating" value="5" required>
-                                        <label for="star5"><i class="bi bi-star"></i></label>
+                                    <div class="rating-container d-flex justify-content-center" style="font-size: 2rem;">
+                                        <!-- Inversione dell'ordine: ora 1 stella è a sinistra e 5 stelle a destra -->
+                                        <div class="star-item">
+                                            <input type="radio" id="star1" name="rating" value="1" class="star-input" required>
+                                            <label for="star1"><i class="bi bi-star"></i></label>
+                                        </div>
                                         
-                                        <input type="radio" id="star4" name="rating" value="4">
-                                        <label for="star4"><i class="bi bi-star"></i></label>
+                                        <div class="star-item">
+                                            <input type="radio" id="star2" name="rating" value="2" class="star-input">
+                                            <label for="star2"><i class="bi bi-star"></i></label>
+                                        </div>
                                         
-                                        <input type="radio" id="star3" name="rating" value="3">
-                                        <label for="star3"><i class="bi bi-star"></i></label>
+                                        <div class="star-item">
+                                            <input type="radio" id="star3" name="rating" value="3" class="star-input">
+                                            <label for="star3"><i class="bi bi-star"></i></label>
+                                        </div>
                                         
-                                        <input type="radio" id="star2" name="rating" value="2">
-                                        <label for="star2"><i class="bi bi-star"></i></label>
+                                        <div class="star-item">
+                                            <input type="radio" id="star4" name="rating" value="4" class="star-input">
+                                            <label for="star4"><i class="bi bi-star"></i></label>
+                                        </div>
                                         
-                                        <input type="radio" id="star1" name="rating" value="1">
-                                        <label for="star1"><i class="bi bi-star"></i></label>
+                                        <div class="star-item">
+                                            <input type="radio" id="star5" name="rating" value="5" class="star-input">
+                                            <label for="star5"><i class="bi bi-star"></i></label>
+                                        </div>
                                     </div>
                                     <div id="ratingText" class="text-muted mt-2">Please select a rating</div>
                                 </div>
                             </div>
+
+                            <style>
+                            /* Stile per nascondere i radio button ma mantenere la funzionalità */
+                            .star-input {
+                                position: absolute;
+                                opacity: 0;
+                                width: 0;
+                                height: 0;
+                            }
+
+                            .star-item {
+                                cursor: pointer;
+                                padding: 0 2px; /* Spazio controllato tra le stelle */
+                            }
+
+                            .star-item label {
+                                cursor: pointer;
+                            }
+                            </style>
                             
                             <div class="mb-4">
                                 <label for="feedback" class="form-label fw-bold">Additional feedback (optional)</label>
@@ -209,42 +238,40 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Handle star hover and click events
     starLabels.forEach((label, index) => {
-        const starNumber = 5 - index;
+        // Con l'ordine invertito, index è già corretto (0 = 1 stella, 4 = 5 stelle)
+        const starNumber = index + 1;
         
         label.addEventListener('mouseover', () => {
-            // Update all stars on hover
+            // Aggiorna tutte le stelle al passaggio del mouse
             starLabels.forEach((s, i) => {
-                const current = 5 - i;
-                s.innerHTML = current <= starNumber ? '<i class="bi bi-star-fill text-warning"></i>' : '<i class="bi bi-star"></i>';
+                s.innerHTML = i < starNumber ? '<i class="bi bi-star-fill text-warning"></i>' : '<i class="bi bi-star"></i>';
             });
             ratingText.textContent = ratingDescriptions[starNumber];
         });
         
         label.addEventListener('click', () => {
-            // Set the input value
+            // Imposta il valore dell'input
             starInputs[index].checked = true;
             
-            // Update all stars on click
+            // Aggiorna tutte le stelle al click
             starLabels.forEach((s, i) => {
-                const current = 5 - i;
-                s.innerHTML = current <= starNumber ? '<i class="bi bi-star-fill text-warning"></i>' : '<i class="bi bi-star"></i>';
+                s.innerHTML = i < starNumber ? '<i class="bi bi-star-fill text-warning"></i>' : '<i class="bi bi-star"></i>';
             });
             ratingText.textContent = ratingDescriptions[starNumber];
         });
     });
     
-    // Handle mouseleave for the container (reset to selected state)
+    // Gestisce l'uscita del mouse dal contenitore (ripristina lo stato selezionato)
     document.querySelector('.rating-container').addEventListener('mouseleave', () => {
         let selected = 0;
         starInputs.forEach((input, i) => {
             if (input.checked) {
-                selected = 5 - i;
+                selected = i + 1;
             }
         });
         
         starLabels.forEach((s, i) => {
-            const current = 5 - i;
-            s.innerHTML = current <= selected ? '<i class="bi bi-star-fill text-warning"></i>' : '<i class="bi bi-star"></i>';
+            s.innerHTML = i < selected ? '<i class="bi bi-star-fill text-warning"></i>' : '<i class="bi bi-star"></i>';
         });
         
         ratingText.textContent = selected > 0 ? ratingDescriptions[selected] : 'Please select a rating';

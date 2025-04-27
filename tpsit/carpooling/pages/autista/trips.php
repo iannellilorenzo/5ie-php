@@ -22,6 +22,8 @@ require_once $rootPath . 'api/config/database.php';
 require_once $rootPath . 'api/models/Viaggio.php';
 require_once $rootPath . 'api/models/Prenotazione.php';
 require_once $rootPath . 'api/models/Automobile.php';
+require_once $rootPath . 'api/models/Autista.php';
+require_once $rootPath . 'api/models/Passeggero.php';
 
 // Initialize
 $error = null;
@@ -65,6 +67,7 @@ if (isset($_GET['action']) && isset($_GET['id']) && !empty($_GET['id'])) {
                 $bookings = $prenotazioneModel->getAll(['id_viaggio' => $tripId, 'stato' => 'confermata']);
                 
                 // Get driver info
+                $autistaModel = new Autista($conn);
                 $driver = $autistaModel->getById($trip['id_autista']);
                 $driverName = $driver['nome'] . ' ' . $driver['cognome'];
                 
