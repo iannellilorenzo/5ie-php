@@ -5,7 +5,7 @@ class Move {
   constructor(data = {}) {
     this._id = null;
     this.lobbyId = data.lobbyId || null;
-    this.gameType = data.gameType || 'tris';
+    this.gameType = data.gameType || 'generic';
     this.playerId = data.playerId || null;
     this.playerSymbol = data.playerSymbol || null;
     this.moveData = data.moveData || {};

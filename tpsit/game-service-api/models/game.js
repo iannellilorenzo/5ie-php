@@ -9,7 +9,7 @@ class Game {
     this.maxPlayers = config.maxPlayers || 2;
     this.state = {
       board: config.initialBoard || null,
-      currentTurn: config.startingPlayer || 'X',
+      currentTurn: config.startingPlayer || null,
       moves: [],
       winner: null,
       isDraw: false,
@@ -76,8 +76,8 @@ class Game {
     
     this.state.moves.push(move);
     
-    // Update current turn (basic alternating turns)
-    this.state.currentTurn = this.state.currentTurn === 'X' ? 'O' : 'X';
+    // Update current turn - should be handled by game-specific logic
+    // Removed specific X/O logic
     
     // Save the updated state
     await this.save();
@@ -201,41 +201,6 @@ class Game {
     game.createdAt = gameData.createdAt;
     
     return game;
-  }
-
-  // Create game subclasses for specific games
-
-  // Create a TicTacToe game
-  static createTicTacToe() {
-    return new Game({
-      gameType: 'tictactoe',
-      maxPlayers: 2,
-      initialBoard: Array(9).fill(null),
-      startingPlayer: 'X',
-      boardSize: 3  // 3x3 grid
-    });
-  }
-
-  // Create a Chess game
-  static createChess() {
-    return new Game({
-      gameType: 'chess',
-      maxPlayers: 2,
-      startingPlayer: 'white',
-      boardSize: 8  // 8x8 grid
-      // Would need to add initial chess piece positions
-    });
-  }
-
-  // Create a Checkers game
-  static createCheckers() {
-    return new Game({
-      gameType: 'checkers',
-      maxPlayers: 2,
-      startingPlayer: 'black',
-      boardSize: 8  // 8x8 grid
-      // Would need to add initial checker piece positions
-    });
   }
 
   // Create a customized game

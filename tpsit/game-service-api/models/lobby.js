@@ -1,7 +1,7 @@
 const { getDb } = require('../db/mongodb');
 
 class Lobby {
-  constructor(name, creatorId, maxPlayers = 2, gameType = 'tris') {
+  constructor(name, creatorId, maxPlayers = 2, gameType = 'generic') {
     this._id = null;
     this.name = name;
     this.creatorId = creatorId;

@@ -3,41 +3,42 @@ class Player {
     this.id = id;
     this.connection = connection;
     this.lobbyId = null;
-    this.symbol = null;
     this.spectator = false;
     this.isAdmin = false;
     this.connectedAt = new Date();
-    this.alias = null; // Nuovo campo per l'alias
+    this.alias = null;
   }
 
-  // Imposta l'alias per il giocatore
+  // Set player's alias
   setAlias(alias) {
     this.alias = alias;
   }
 
-  // Modifica i metodi esistenti per supportare gli alias
-  setAsPlayer(lobbyId, symbol, alias = null) {
+  // Set as player in a lobby
+  setAsPlayer(lobbyId, alias = null) {
     this.lobbyId = lobbyId;
-    this.symbol = symbol;
     this.spectator = false;
     if (alias) this.alias = alias;
   }
 
+  // Set as spectator in a lobby
   setAsSpectator(lobbyId, alias = null) {
     this.lobbyId = lobbyId;
-    this.symbol = null;
     this.spectator = true;
     if (alias) this.alias = alias;
   }
 
+  // Check if player is in a lobby
   isInLobby() {
     return this.lobbyId !== null;
   }
 
+  // Check if player is a spectator
   isSpectator() {
     return this.spectator;
   }
 
+  // Send message to this player
   send(message) {
     if (this.connection.readyState === 1) { // 1 = WebSocket.OPEN
       this.connection.send(JSON.stringify(message));
