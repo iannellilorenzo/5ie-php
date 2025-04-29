@@ -225,4 +225,49 @@ class Prenotazione {
             throw new Exception($e->getMessage());
         }
     }
+
+    /**
+     * Get a single booking by conditions
+     *
+     * @param array $conditions Key-value pairs of conditions
+     * @return array|null The booking or null if not found
+     */
+    public function getOne($conditions = []) {
+        try {
+            $query = "SELECT 
+                        p.id_prenotazione, p.id_viaggio, p.id_passeggero, 
+                        p.voto_autista, p.voto_passeggero,
+                        p.feedback_autista, p.feedback_passeggero,
+                        p.stato, p.n_posti, p.note,
+                        v.citta_partenza, v.citta_destinazione, v.timestamp_partenza,
+                        v.id_autista, v.prezzo_cadauno
+                    FROM " . $this->table . " p
+                    JOIN viaggi v ON p.id_viaggio = v.id_viaggio
+                    WHERE ";
+            
+            $whereConditions = [];
+            $params = [];
+            
+            foreach ($conditions as $key => $value) {
+                if ($key === 'id_viaggio') {
+                    $whereConditions[] = "p.id_viaggio = ?";
+                    $params[] = $value;
+                } elseif ($key === 'id_passeggero') {
+                    $whereConditions[] = "p.id_passeggero = ?";
+                    $params[] = $value;
+                } elseif ($key === 'stato') {
+                    $whereConditions[] = "p.stato = ?";
+                    $params[] = $value;
+                }
+            }
+            
+            $query .= implode(" AND ", $whereConditions);
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute($params);
+            
+            return $stmt->fetch();
+                    } catch (PDOException $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
 }

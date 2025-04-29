@@ -36,15 +36,19 @@ class Automobile {
         }
     }
     
+    /**
+     * Get a vehicle by its license plate
+     *
+     * @param string $targa The license plate
+     * @return array|null The vehicle or null if not found
+     */
     public function getById($targa) {
         try {
             $query = "SELECT 
-                        a.targa, a.marca, a.modello, a.id_autista,
-                        at.nome as nome_autista, at.cognome as cognome_autista
-                    FROM " . $this->table . " a
-                    JOIN autisti at ON a.id_autista = at.id_autista
-                    WHERE a.targa = ?";
-                    
+                        a.targa, a.marca, a.modello, a.id_autista
+                      FROM " . $this->table . " a
+                      WHERE a.targa = ?";
+                      
             $stmt = $this->conn->prepare($query);
             $stmt->execute([$targa]);
             
@@ -153,6 +157,29 @@ class Automobile {
             $stmt->execute([$targa]);
             
             return true;
+        } catch (PDOException $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    /**
+     * Get a vehicle by driver ID
+     * 
+     * @param int $driverId The driver ID
+     * @return array|null The vehicle or null if not found
+     */
+    public function getByDriverId($driverId) {
+        try {
+            $query = "SELECT 
+                        a.targa, a.marca, a.modello, a.id_autista, a.colore
+                      FROM " . $this->table . " a
+                      WHERE a.id_autista = ?
+                      LIMIT 1";
+                      
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute([$driverId]);
+            
+            return $stmt->fetch();
         } catch (PDOException $e) {
             throw new Exception($e->getMessage());
         }

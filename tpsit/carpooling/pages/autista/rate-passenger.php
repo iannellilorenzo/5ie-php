@@ -5,13 +5,13 @@ if (session_status() == PHP_SESSION_NONE) {
 }
 
 // Set page title
-$pageTitle = "Valuta l'Autista";
+$pageTitle = "Valuta il Passeggero";
 
 // Set root path for includes
 $rootPath = "../../";
 
-// Check if user is logged in and is a passenger
-if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'passeggero') {
+// Check if user is logged in and is a driver
+if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'autista') {
     // Redirect to login
     header("Location: {$rootPath}login.php?redirect=" . urlencode($_SERVER['REQUEST_URI']));
     exit();
@@ -20,6 +20,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'passeggero') {
 // Include database and models
 require_once $rootPath . 'api/config/database.php';
 require_once $rootPath . 'api/models/Prenotazione.php';
+require_once $rootPath . 'api/models/Passeggero.php';
 
 // Initialize
 $error = null;
@@ -41,15 +42,15 @@ if (!isset($_GET['booking_id']) || empty($_GET['booking_id'])) {
         $prenotazioneModel = new Prenotazione($conn);
         $booking = $prenotazioneModel->getById($bookingId);
         
-        // Verify that the booking belongs to the logged-in passenger and is completed
+        // Verify that the booking belongs to a trip by the logged-in driver and is completed
         if (!$booking) {
             $error = "Prenotazione non trovata";
-        } else if ($booking['id_passeggero'] != $_SESSION['user_id']) {
+        } else if ($booking['id_autista'] != $_SESSION['user_id']) {
             $error = "Non puoi valutare questa prenotazione";
         } else if ($booking['stato'] !== 'completato') {
             $error = "Puoi valutare solo viaggi completati";
-        } else if (!empty($booking['voto_autista'])) {
-            $error = "Hai già valutato questo autista";
+        } else if (!empty($booking['voto_passeggero'])) {
+            $error = "Hai già valutato questo passeggero";
         }
         
         // Process the form submission
@@ -63,12 +64,12 @@ if (!isset($_GET['booking_id']) || empty($_GET['booking_id'])) {
             } else {
                 // Update booking with rating
                 $updateData = [
-                    'voto_autista' => $rating
+                    'voto_passeggero' => $rating
                 ];
                 
                 // Feedback is optional
                 if (!empty($feedback)) {
-                    $updateData['feedback_autista'] = $feedback;
+                    $updateData['feedback_passeggero'] = $feedback;
                 }
                 
                 // Update booking
@@ -102,11 +103,11 @@ include $rootPath . 'includes/navbar.php';
                         <h2 class="fw-bold mb-3">Grazie per la Valutazione!</h2>
                         <p class="text-muted mb-4">Il tuo feedback aiuta a migliorare la nostra community e promuove viaggi più sicuri e piacevoli per tutti.</p>
                         <div class="d-grid gap-2">
-                            <a href="<?php echo $rootPath; ?>pages/passeggero/dashboard.php" class="btn btn-primary btn-lg">
+                            <a href="<?php echo $rootPath; ?>pages/autista/dashboard.php" class="btn btn-primary btn-lg">
                                 <i class="bi bi-house me-2"></i>Torna alla Dashboard
                             </a>
-                            <a href="<?php echo $rootPath; ?>pages/passeggero/search.php" class="btn btn-outline-primary">
-                                <i class="bi bi-search me-2"></i>Cerca altri viaggi
+                            <a href="<?php echo $rootPath; ?>pages/autista/trips.php" class="btn btn-outline-primary">
+                                <i class="bi bi-car-front me-2"></i>Gestisci i tuoi viaggi
                             </a>
                         </div>
                     </div>
@@ -121,7 +122,7 @@ include $rootPath . 'includes/navbar.php';
                         <h2 class="fw-bold mb-3">Si è verificato un errore</h2>
                         <p class="text-danger mb-4"><?php echo $error; ?></p>
                         <div class="d-grid gap-2">
-                            <a href="<?php echo $rootPath; ?>pages/passeggero/dashboard.php" class="btn btn-primary btn-lg">
+                            <a href="<?php echo $rootPath; ?>pages/autista/dashboard.php" class="btn btn-primary btn-lg">
                                 <i class="bi bi-house me-2"></i>Torna alla Dashboard
                             </a>
                         </div>
@@ -131,25 +132,25 @@ include $rootPath . 'includes/navbar.php';
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-primary text-white py-3 text-center position-relative">
                         <div class="position-absolute top-0 start-0 p-3">
-                            <a href="<?php echo $rootPath; ?>pages/passeggero/dashboard.php" class="text-white">
+                            <a href="<?php echo $rootPath; ?>pages/autista/trips.php" class="text-white">
                                 <i class="bi bi-arrow-left"></i>
                             </a>
                         </div>
-                        <h4 class="mb-0 fw-bold">Valuta l'Autista</h4>
+                        <h4 class="mb-0 fw-bold">Valuta il Passeggero</h4>
                     </div>
                     <div class="card-body p-4 p-md-5">
                         <div class="text-center mb-4">
                             <div class="rating-intro">
-                                <p class="text-muted">Il tuo feedback aiuta gli altri passeggeri a scegliere autisti affidabili.</p>
+                                <p class="text-muted">Il tuo feedback aiuta a migliorare la nostra community e promuove viaggi più sicuri e piacevoli per tutti.</p>
                             </div>
                         </div>
                         
-                        <!-- Driver & Trip Info -->
-                        <div class="driver-info mb-4 p-4 bg-light rounded-3">
+                        <!-- Passenger & Trip Info -->
+                        <div class="passenger-info mb-4 p-4 bg-light rounded-3">
                             <div class="d-flex align-items-center mb-3">
                                 <div class="me-3 position-relative">
-                                    <?php if (!empty($booking['foto_autista']) && file_exists($rootPath . $booking['foto_autista'])): ?>
-                                        <img src="<?php echo $rootPath . $booking['foto_autista']; ?>" alt="Driver" class="rounded-circle shadow-sm" width="70" height="70" style="object-fit: cover;">
+                                    <?php if (!empty($booking['fotografia']) && file_exists($rootPath . $booking['fotografia'])): ?>
+                                        <img src="<?php echo $rootPath . $booking['fotografia']; ?>" alt="Passenger" class="rounded-circle shadow-sm" width="70" height="70" style="object-fit: cover;">
                                     <?php else: ?>
                                         <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width:70px;height:70px">
                                             <i class="bi bi-person text-primary" style="font-size: 2rem;"></i>
@@ -157,9 +158,9 @@ include $rootPath . 'includes/navbar.php';
                                     <?php endif; ?>
                                 </div>
                                 <div>
-                                    <h5 class="mb-1"><?php echo htmlspecialchars($booking['nome_autista'] . ' ' . $booking['cognome_autista']); ?></h5>
+                                    <h5 class="mb-1"><?php echo htmlspecialchars($booking['nome_passeggero'] . ' ' . $booking['cognome_passeggero']); ?></h5>
                                     <p class="text-muted mb-0 fs-6">
-                                        <i class="bi bi-car-front me-1"></i> Autista
+                                        <i class="bi bi-person me-1"></i> Passeggero
                                     </p>
                                 </div>
                             </div>
@@ -214,7 +215,7 @@ include $rootPath . 'includes/navbar.php';
                         <!-- Rating Form -->
                         <form method="POST" action="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>" class="rating-form">
                             <div class="mb-4">
-                                <label class="form-label fw-bold fs-5">Com'è stato il tuo viaggio?</label>
+                                <label class="form-label fw-bold fs-5">Com'è stato il tuo passeggero?</label>
                                 <div class="star-rating text-center my-3">
                                     <div class="rating-container d-flex justify-content-center rating-lg">
                                         <?php for ($i = 1; $i <= 5; $i++): ?>
@@ -233,9 +234,9 @@ include $rootPath . 'includes/navbar.php';
                             <div class="mb-4">
                                 <label for="feedback" class="form-label fw-bold fs-5">Feedback (opzionale)</label>
                                 <div class="form-text text-muted mb-2">
-                                    <i class="bi bi-info-circle me-1"></i> La tua esperienza aiuterà gli altri passeggeri nella scelta dell'autista.
+                                    <i class="bi bi-info-circle me-1"></i> La tua esperienza aiuterà gli altri autisti a conoscere meglio questo passeggero.
                                 </div>
-                                <textarea class="form-control form-control-lg shadow-sm" id="feedback" name="feedback" rows="4" placeholder="Descrivi la tua esperienza di viaggio. Com'era la guida dell'autista? È stato puntuale? L'auto era pulita e comoda?"></textarea>
+                                <textarea class="form-control form-control-lg shadow-sm" id="feedback" name="feedback" rows="4" placeholder="Descrivi la tua esperienza con questo passeggero. È stato puntuale? Educato? Consiglieresti ad altri autisti di dargli un passaggio?"></textarea>
                             </div>
                             
                             <div class="d-grid mt-4">

@@ -1,7 +1,7 @@
 <?php
 require_once 'BaseController.php';
 
-class TripController extends BaseController {
+class ViaggioController extends BaseController {
     public function __construct($conn) {
         parent::__construct($conn);
         $this->model = new Viaggio($conn);
@@ -77,6 +77,62 @@ class TripController extends BaseController {
             sendSuccess($bookings);
         } catch (Exception $e) {
             sendError('Failed to retrieve trip bookings: ' . $e->getMessage(), 500);
+        }
+    }
+    
+    /**
+     * Close bookings for a trip
+     * 
+     * @param int $tripId The trip ID
+     * @return void
+     */
+    public function closeBookings($tripId) {
+        try {
+            global $user;
+            
+            // Get the trip to check ownership
+            $trip = $this->model->getById($tripId);
+            
+            if (!$trip) {
+                sendError('Trip not found', 404);
+                return;
+            }
+            
+            // Ensure only the trip driver can close bookings
+            if (!isset($user['tipo']) || $user['tipo'] != 'autista' || $user['id'] != $trip['id_autista']) {
+                sendError('You are not authorized to close bookings for this trip', 403);
+                return;
+            }
+            
+            // Update trip status to close bookings
+            $updateData = ['stato' => 'chiuso'];
+            $success = $this->model->update($tripId, $updateData);
+            
+            if (!$success) {
+                sendError('Failed to close bookings for this trip', 500);
+                return;
+            }
+            
+            // Send email notification to the driver
+            require_once 'utils/EmailService.php';
+            $emailService = new EmailService();
+            
+            // Get driver info
+            require_once 'models/Autista.php';
+            $driverModel = new Autista($this->conn);
+            $driver = $driverModel->getById($trip['id_autista']);
+            
+            if ($driver && isset($driver['email'])) {
+                $emailService->sendBookingClosedNotification(
+                    $driver['email'],
+                    $driver['nome'] . ' ' . $driver['cognome'],
+                    $trip
+                );
+            }
+            
+            sendSuccess(null, 'Bookings for this trip have been closed');
+        } catch (Exception $e) {
+            sendError('Failed to close bookings: ' . $e->getMessage(), 500);
         }
     }
     

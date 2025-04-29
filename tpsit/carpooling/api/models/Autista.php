@@ -64,6 +64,79 @@ class Autista {
     }
     
     /**
+     * Get driver with their rating information
+     * 
+     * @param int $driverId The driver ID
+     * @return array|null The driver with ratings or null if not found
+     */
+    public function getDriverWithRatings($driverId) {
+        try {
+            // Get the basic driver info
+            $driver = $this->getById($driverId);
+            
+            if (!$driver) {
+                return null;
+            }
+            
+            // Get ratings through bookings
+            $query = "SELECT 
+                        AVG(p.voto_autista) as rating_avg,
+                        COUNT(p.voto_autista) as rating_count
+                      FROM prenotazioni p
+                      JOIN viaggi v ON p.id_viaggio = v.id_viaggio
+                      WHERE v.id_autista = ? AND p.voto_autista IS NOT NULL";
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute([$driverId]);
+            
+            $ratingInfo = $stmt->fetch();
+            
+            // Add rating info to driver
+            $driver['rating_avg'] = $ratingInfo['rating_avg'] ? round($ratingInfo['rating_avg'], 1) : 0;
+            $driver['rating_count'] = $ratingInfo['rating_count'] ? (int)$ratingInfo['rating_count'] : 0;
+            
+            // Get number of trips
+            $query = "SELECT COUNT(*) as viaggi_count FROM viaggi WHERE id_autista = ?";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute([$driverId]);
+            $trips = $stmt->fetch();
+            
+            $driver['viaggi_count'] = $trips ? (int)$trips['viaggi_count'] : 0;
+            
+            return $driver;
+        } catch (PDOException $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+    
+    /**
+     * Get trips created by a driver
+     * 
+     * @param int $driverId The driver ID
+     * @return array Trips by this driver
+     */
+    public function getDriverTrips($driverId) {
+        try {
+            $query = "SELECT 
+                        v.id_viaggio, v.citta_partenza, v.citta_destinazione, v.timestamp_partenza, 
+                        v.prezzo_cadauno, v.tempo_stimato, v.soste, v.bagaglio, v.animali, v.stato,
+                        COUNT(p.id_prenotazione) as num_bookings
+                      FROM viaggi v
+                      LEFT JOIN prenotazioni p ON v.id_viaggio = p.id_viaggio
+                      WHERE v.id_autista = ?
+                      GROUP BY v.id_viaggio
+                      ORDER BY v.timestamp_partenza DESC";
+                      
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute([$driverId]);
+            
+            return $stmt->fetchAll();
+        } catch (PDOException $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+    
+    /**
      * Create new driver
      */
     public function create($data) {

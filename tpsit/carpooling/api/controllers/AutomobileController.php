@@ -1,7 +1,7 @@
 <?php
 require_once 'BaseController.php';
 
-class CarController extends BaseController {
+class AutomobileController extends BaseController {
     public function __construct($conn) {
         parent::__construct($conn);
         $this->model = new Automobile($conn);
